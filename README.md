@@ -6,7 +6,7 @@ Noughts and Crosses(Done)
 
 2048 
 
-Snake 
+Snake (Done)
 
 Flappy Bird clone 
 
