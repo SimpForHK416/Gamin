@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <application
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.Gamin">
+
+        <activity
+            android:name=".GameIntroActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".NoughtsAndCrosses.NoughtsAndCrossesActivity"
+            android:exported="false" />
+
+        <activity android:name=".snake.SnakeActivity"
+            android:exported="false"
+            android:label="Snake" />
+
+        <activity android:name=".MineSweeper.MinesweeperActivity"
+            android:exported="false"
+            android:label="Minesweeper" />
+
+        <activity android:name=".game2408.Game2408Activity"
+            android:exported="false"
+            android:label="2048" />
+
+        <activity android:name=".FlappyBird.FlappyBirdActivity"
+            android:exported="false"
+            android:label="Flappy Bird" />
+
+        <activity android:name=".MemoryCard.MemoryCardActivity"
+            android:exported="false"
+            android:label="Memory Card" />
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.Gamin">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+    </application>
+</manifest>
