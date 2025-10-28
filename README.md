@@ -1,6 +1,8 @@
-Mini-game hub with 10 minigame, some game will have high-score calculation feature for scoreboard feature
+Mini-game hub with at least 20 minigame, some game will have high-score calculation feature for scoreboard feature, every one musst do at least 5 game and atleast 1 of the games must have pve mode, reference online is crucial, avoid chatbot for intsys gamemode
 
-List of games:
+Some ideas (Add here):
+
+Pong (Done)
 
 Noughts and Crosses(Done)  
 
