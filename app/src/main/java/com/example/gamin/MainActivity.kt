@@ -20,8 +20,10 @@ import com.example.gamin.NoughtsAndCrosses.NoughtsAndCrossesActivity
 import com.example.gamin.snake.SnakeActivity
 import com.example.gamin.MineSweeper.MinesweeperActivity
 import com.example.gamin.ui.theme.GaminTheme
-import com.example.gamin.game2408.Game2408Activity // QUAN TRỌNG
+import com.example.gamin.game2408.Game2408Activity
 import com.example.gamin.MemoryCard.MemoryCardActivity
+import com.example.gamin.Pong.PongActivity // <-- THÊM MỚI IMPORT
+
 data class GameItem(
     val title: String,
     val rules: String,
@@ -75,14 +77,12 @@ fun GameMenu(onGameClick: (GameItem) -> Unit) {
             MinesweeperActivity::class.java
         ),
 
-        // BỔ SUNG: Game 2048
         GameItem(
             "2048",
             "Luật chơi: Trượt các ô số. Hai ô cùng số chạm nhau sẽ hợp nhất. Đạt ô 2048 để thắng!",
             R.drawable.ic_2048,
             Game2408Activity::class.java
         ),
-        //flappybird
 
         GameItem(
             "Flappy Bird",
@@ -94,9 +94,19 @@ fun GameMenu(onGameClick: (GameItem) -> Unit) {
         GameItem(
             "Memory Card",
             "Lật 2 thẻ bài giống nhau để tạo cặp. Lật hết các cặp để thắng!",
-            R.drawable.ic_memory_card_placeholder, // CẦN TẠO TÀI NGUYÊN NÀY
-            MemoryCardActivity::class.java // BỔ SUNG: Class Memory Card
+            R.drawable.ic_memory_card_placeholder,
+            MemoryCardActivity::class.java
+        ),
+
+        // =============================================
+        // THÊM MỚI GAME PONG
+        GameItem(
+            "Pong",
+            "Dùng thanh trượt di chuyển lên xuống để đánh bóng. Đừng để lọt!",
+            R.drawable.ic_tictactoe, // <-- THAY THẾ BẰNG ic_pong_placeholder KHI CÓ
+            PongActivity::class.java
         )
+        // =============================================
     )
 
     LazyVerticalGrid(

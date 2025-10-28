@@ -1,8 +1,12 @@
 package com.example.gamin.snake
 
+import android.annotation.SuppressLint
+import android.app.Activity // THÊM MỚI
 import android.content.Context
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults // THÊM MỚI
+import androidx.compose.material3.MaterialTheme // THÊM MỚI
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -10,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 
+@SuppressLint("ContextCastToActivity")
 @Composable
 fun SnakeGameScreen() {
     val context = LocalContext.current
@@ -20,6 +25,9 @@ fun SnakeGameScreen() {
     var isPlaying by remember { mutableStateOf(false) }
     var isGameOver by remember { mutableStateOf(false) }
 
+    // THÊM MỚI: Lấy context activity
+    val activity = (LocalContext.current as? Activity)
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -29,10 +37,28 @@ fun SnakeGameScreen() {
         // Điểm
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically // THÊM MỚI
         ) {
-            Text("Score: $score")
-            Text("Best: $best")
+            // THÊM MỚI: Nút Quay lại
+            Button(
+                onClick = { activity?.finish() },
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
+                modifier = Modifier.weight(1f) // THÊM MỚI
+            ) {
+                Text("Quay lại")
+            }
+
+            // Đặt điểm trong Box để căn giữa
+            Box(
+                modifier = Modifier.weight(2f), // THÊM MỚI
+                contentAlignment = Alignment.CenterEnd
+            ) {
+                Column(horizontalAlignment = Alignment.End) {
+                    Text("Score: $score")
+                    Text("Best: $best")
+                }
+            }
         }
 
         Spacer(Modifier.height(16.dp))

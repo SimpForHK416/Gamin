@@ -1,5 +1,7 @@
 package com.example.gamin.MemoryCard
 
+import android.annotation.SuppressLint
+import android.app.Activity
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
@@ -15,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -61,8 +64,12 @@ fun MemoryCardGameRoot() {
 }
 
 // --- MÀN HÌNH 1: CHỌN ĐỘ KHÓ ---
+@SuppressLint("ContextCastToActivity")
 @Composable
 fun DifficultySelectionScreen(onDifficultySelected: (Int, Int) -> Unit) {
+    // Lấy activity context
+    val activity = (LocalContext.current as? Activity)
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -94,6 +101,15 @@ fun DifficultySelectionScreen(onDifficultySelected: (Int, Int) -> Unit) {
             modifier = Modifier.fillMaxWidth()
         ) {
             Text("Khó (5x6)")
+        }
+
+        // Thêm nút Quay lại Menu chính
+        Spacer(modifier = Modifier.height(64.dp))
+        OutlinedButton(
+            onClick = { activity?.finish() },
+            modifier = Modifier.fillMaxWidth(0.8f)
+        ) {
+            Text("Quay lại Menu")
         }
     }
 }
@@ -159,7 +175,7 @@ fun GameGridScreen(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // THAY ĐỔI: Thêm nút "Quay lại"
+            // Thêm nút "Quay lại"
             Button(
                 onClick = onNavigateBackToSelect, // Gọi lambda để quay về
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
@@ -258,7 +274,8 @@ fun MemoryCard(card: CardState, onClick: () -> Unit) {
 // --- HÀM LẤY ẢNH (Không đổi) ---
 @Composable
 private fun getImageResForContentId(contentId: Int): Int {
-    return when (contentId % 15) { // % 15 cặp
+    // % 15 cặp (cho mức 5x6)
+    return when (contentId % 15) {
         1 -> R.drawable.mem_icon_1
         2 -> R.drawable.mem_icon_2
         3 -> R.drawable.mem_icon_3
@@ -273,8 +290,8 @@ private fun getImageResForContentId(contentId: Int): Int {
         12 -> R.drawable.mem_icon_12
         13 -> R.drawable.mem_icon_13
         14 -> R.drawable.mem_icon_14
-        0 -> R.drawable.mem_icon_15
-        else -> R.drawable.ic_card_back
+        0 -> R.drawable.mem_icon_15 // contentId bắt đầu từ 1, nên cặp 15 sẽ là 0
+        else -> R.drawable.ic_card_back // Trường hợp dự phòng
     }
 }
 

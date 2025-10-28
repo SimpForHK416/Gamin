@@ -40,6 +40,14 @@
             android:exported="false"
             android:label="Memory Card" />
 
+        <!-- ============================================= -->
+        <!-- THÊM MỚI GAME PONG -->
+        <activity android:name=".Pong.PongActivity"
+            android:exported="false"
+            android:label="Pong"
+            android:screenOrientation="landscape" /> <!-- Pong nên chơi ở chế độ ngang -->
+        <!-- ============================================= -->
+
         <activity
             android:name=".MainActivity"
             android:exported="true"

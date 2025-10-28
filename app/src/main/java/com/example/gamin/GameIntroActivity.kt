@@ -19,7 +19,8 @@ import com.example.gamin.MemoryCard.MemoryCardActivity
 import com.example.gamin.snake.SnakeActivity
 import com.example.gamin.MineSweeper.MinesweeperActivity
 import com.example.gamin.ui.theme.GaminTheme
-import com.example.gamin.game2408.Game2408Activity // BỔ SUNG: Import Game2408Activity
+import com.example.gamin.game2408.Game2408Activity
+import com.example.gamin.Pong.PongActivity // <-- THÊM MỚI IMPORT
 
 class GameIntroActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -63,8 +64,10 @@ fun GameIntroScreen(
     val isMinesweeperGame = targetClass == MinesweeperActivity::class.java
     val isFlappyBirdGame = targetClass == FlappyBirdActivity::class.java
     val isMemoryCardGame = targetClass == MemoryCardActivity::class.java
-    val is2048Game = targetClass == Game2408Activity::class.java // BỔ SUNG KIỂM TRA 2048
-    val isSinglePlayerGame = isSnakeGame || isMinesweeperGame || is2048Game || isFlappyBirdGame || isMemoryCardGame
+    val is2048Game = targetClass == Game2408Activity::class.java
+    val isPongGame = targetClass == PongActivity::class.java // <-- THÊM MỚI
+
+    val isSinglePlayerGame = isSnakeGame || isMinesweeperGame || is2048Game || isFlappyBirdGame || isMemoryCardGame || isPongGame // <-- THÊM MỚI
     val isMultiplayerGame = !isSinglePlayerGame
 
 
@@ -90,8 +93,6 @@ fun GameIntroScreen(
         Spacer(modifier = Modifier.height(24.dp))
 
         // --- Logic Hiển thị Nút Chơi Game ---
-
-        // 1. Game 1 người chơi (Snake, Minesweeper, 2048)
         if (isSinglePlayerGame) {
             Button(
                 onClick = {
@@ -110,14 +111,14 @@ fun GameIntroScreen(
                     isFlappyBirdGame -> "Chơi ngay 🐦"
                     is2048Game -> "Chơi ngay 🔢"
                     isMinesweeperGame -> "Chơi ngay 💣"
+                    isPongGame -> "Chơi ngay 🏓" // <-- THÊM MỚI
                     else -> "Chơi ngay 🐍"
                 }
                 Text(text = buttonText)
             }
         }
-        // 2. Game X/O (Multiplayer, có chọn mode)
         else if (isMultiplayerGame) {
-            // ❌⭕ Hai nút cho game X/O
+            // (Code X/O của bạn giữ nguyên)
             Button(
                 onClick = {
                     if (targetClass != null) {

@@ -1,7 +1,7 @@
-// Đặt trong thư mục: com.example.gamin/MineSweeper/MinesweeperScreen.kt
-
 package com.example.gamin.MineSweeper
 
+import android.annotation.SuppressLint
+import android.app.Activity // THÊM MỚI
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -12,9 +12,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext // THÊM MỚI
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+@SuppressLint("ContextCastToActivity")
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MinesweeperScreen() {
@@ -22,6 +24,9 @@ fun MinesweeperScreen() {
     var game by remember {
         mutableStateOf(MinesweeperGame(rows = 8, cols = 8, totalMines = 10))
     }
+
+    // THÊM MỚI: Lấy context activity
+    val activity = (LocalContext.current as? Activity)
 
     Column(
         modifier = Modifier
@@ -35,8 +40,18 @@ fun MinesweeperScreen() {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // THÊM MỚI: Nút Quay lại
+            Button(
+                onClick = { activity?.finish() },
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
+            ) {
+                Text("Quay lại")
+            }
+
             Text("Mines: ${game.minesLeft}", style = MaterialTheme.typography.titleMedium)
-            Text(game.status, style = MaterialTheme.typography.titleLarge)
+
+            // XÓA: Text(game.status, style = MaterialTheme.typography.titleLarge)
+
             Button(onClick = { game = MinesweeperGame(8, 8, 10) }) {
                 Text("Reset")
             }
@@ -56,7 +71,9 @@ fun MinesweeperScreen() {
             itemsIndexed(game.board.flatten()) { index, cell ->
                 MinesweeperCell(
                     cell = cell,
-                    modifier = Modifier.aspectRatio(1f).padding(1.dp)
+                    modifier = Modifier
+                        .aspectRatio(1f)
+                        .padding(1.dp)
                         .combinedClickable(
                             enabled = game.status == "Playing",
                             // Click thường: Mở ô
@@ -71,6 +88,10 @@ fun MinesweeperScreen() {
                 )
             }
         }
+
+        // THÊM MỚI: Hiển thị status ở dưới
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(game.status, style = MaterialTheme.typography.titleLarge)
     }
 }
 
