@@ -1,8 +1,7 @@
-// Đặt trong thư mục: com.example.gamin/FlappyBird/FlappyBirdScreen.kt
-
 package com.example.gamin.FlappyBird
 
-import androidx.compose.animation.core.*
+import android.annotation.SuppressLint
+import android.app.Activity // THAY ĐỔI: Thêm import Activity
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -15,8 +14,18 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+// THAY ĐỔI: Thêm import
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.input.pointer.pointerInput
+// THAY ĐỔI: Thêm import
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.imageResource
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
+// THAY ĐỔI: Thêm import
 import androidx.compose.ui.unit.dp
+import com.example.gamin.R // THAY ĐỔI: Thêm import R (quan trọng)
 import kotlinx.coroutines.delay
 import kotlin.random.Random
 
@@ -28,151 +37,181 @@ private const val PIPE_WIDTH = 100f
 private const val PIPE_GAP = 200f
 private const val PIPE_SPEED = 300f // tốc độ di chuyển của ống (pixels/s)
 
-// --- Trạng thái Game ---
-data class BirdState(val y: Float, val velocity: Float)
-data class PipeState(val x: Float, val gapY: Float)
+// --- Trạng thái Game (State Machine) ---
+sealed class GameState {
+    object Ready : GameState()    // Màn hình "Tap to Start"
+    object Playing : GameState()  // Đang chơi
+    object Crashing : GameState() // Đang rơi sau va chạm
+    object GameOver : GameState() // Đã chạm đất, hiển thị menu
+}
 
+// --- Data Classes ---
+data class BirdState(
+    val y: Float,
+    val velocity: Float,
+    val rotation: Float = 0f // Thêm góc xoay
+)
+
+data class PipeState(
+    val x: Float,
+    val gapY: Float,
+    var scored: Boolean = false // Thêm cờ để kiểm tra đã tính điểm chưa
+)
+
+// THÊM DÒNG NÀY ĐỂ TẮT CẢNH BÁO
+@SuppressLint("UnusedBoxWithConstraintsScope", "ContextCastToActivity")
+@Suppress("BoxWithConstraintsScopeIsNotUsed")
 @Composable
 fun FlappyBirdScreen() {
     var birdState by remember { mutableStateOf(BirdState(y = 500f, velocity = 0f)) }
-    var pipes by remember { mutableStateOf(listOf(PipeState(x = 1000f, gapY = 300f))) }
-    var score by remember { mutableStateOf(0) }
-    var isPlaying by remember { mutableStateOf(false) }
-    var isGameOver by remember { mutableStateOf(false) }
-    var groundOffset by remember { mutableStateOf(0f) }
+    var pipes by remember { mutableStateOf(emptyList<PipeState>()) }
+    var score by remember { mutableIntStateOf(0) }
+    var gameState by remember { mutableStateOf<GameState>(GameState.Ready) }
+    var groundOffset by remember { mutableFloatStateOf(0f) }
 
-    LaunchedEffect(isPlaying) {
-        while (isPlaying && !isGameOver) {
-            groundOffset = (groundOffset - PIPE_SPEED * 0.016f) % 100f
-            delay(16)
-        }
+    // THAY ĐỔI: Chỉ tải ảnh chim
+    val context = LocalContext.current
+    val birdBitmap = remember {
+        ImageBitmap.imageResource(context.resources, R.drawable.ic_bird) // Sử dụng tên ic_bird
     }
 
-    // --- Game Loop ---
-    val lastUpdateTime = rememberUpdatedState(System.nanoTime())
-    LaunchedEffect(isPlaying) {
-        if (!isPlaying || isGameOver) return@LaunchedEffect
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        val gameHeight = constraints.maxHeight.toFloat()
+        val gameWidth = constraints.maxWidth.toFloat()
+        val birdX = gameWidth / 4 // Vị trí X cố định của chim
 
-        var lastTime = lastUpdateTime.value
-        while (isPlaying && !isGameOver) {
-            val currentTime = System.nanoTime()
-            val dt = (currentTime - lastTime) / 1_000_000_000f // Delta time in seconds
-            lastTime = currentTime
+        // --- Hàm Reset Game ---
+        val resetGame: () -> Unit = {
+            birdState = BirdState(y = gameHeight / 2, velocity = 0f, rotation = 0f)
+            pipes = listOf(PipeState(x = gameWidth * 1.5f, gapY = gameHeight / 2))
+            score = 0
+            gameState = GameState.Ready
+        }
 
-            // 1. Cập nhật vị trí và vận tốc chim
-            birdState = birdState.copy(
-                velocity = birdState.velocity + GRAVITY * dt,
-                y = birdState.y + birdState.velocity * dt
-            )
-
-            // 2. Cập nhật vị trí ống
-            pipes = pipes.map { pipe ->
-                pipe.copy(x = pipe.x - PIPE_SPEED * dt)
-            }.filter { it.x > -PIPE_WIDTH }
-
-            // 3. Thêm ống mới
-            if (pipes.last().x < 500f) {
-                val newGapY = Random.nextInt(200, 800).toFloat()
-                pipes = pipes + PipeState(x = 1000f, gapY = newGapY)
+        // Khởi tạo ống khi game sẵn sàng (nếu chưa có)
+        LaunchedEffect(gameState, gameWidth, gameHeight) {
+            if (gameState == GameState.Ready && pipes.isEmpty()) {
+                pipes = listOf(PipeState(x = gameWidth * 1.5f, gapY = gameHeight / 2))
             }
+        }
 
-            // 4. Kiểm tra va chạm
-            val gameHeight = 1000f // Chiều cao giả định
-            val birdX = 300f // Chim cố định ở 1/4 màn hình (có thể chỉnh nếu muốn)
-
-            val birdRect = Rect(
-                birdX - BIRD_SIZE / 2,
-                birdState.y - BIRD_SIZE / 2,
-                birdX + BIRD_SIZE / 2,
-                birdState.y + BIRD_SIZE / 2
-            )
-
-            pipes.forEach { pipe ->
-                val topPipeRect = Rect(
-                    pipe.x,
-                    0f,
-                    pipe.x + PIPE_WIDTH,
-                    pipe.gapY - PIPE_GAP / 2
-                )
-                val bottomPipeRect = Rect(
-                    pipe.x,
-                    pipe.gapY + PIPE_GAP / 2,
-                    pipe.x + PIPE_WIDTH,
-                    gameHeight
-                )
-
-                if (birdRect.overlaps(topPipeRect) || birdRect.overlaps(bottomPipeRect)) {
-                    isGameOver = true
+        // --- Xử lý Input (Nhấn) ---
+        val tapAction: () -> Unit = {
+            when (gameState) {
+                GameState.Ready -> {
+                    gameState = GameState.Playing // Bắt đầu chơi
+                    birdState = birdState.copy(velocity = JUMP_VELOCITY) // Nhảy lần đầu
                 }
-
-                // Tăng điểm khi vượt qua ống
-                if (!isGameOver && pipe.x + PIPE_WIDTH < birdX && pipe.x + PIPE_WIDTH >= birdX - PIPE_SPEED * dt) {
-                    score++
+                GameState.Playing -> {
+                    birdState = birdState.copy(velocity = JUMP_VELOCITY) // Nhảy
                 }
+                GameState.GameOver -> {
+                    resetGame() // Chơi lại
+                }
+                GameState.Crashing -> { /* Không làm gì khi đang rơi */ }
             }
+        }
 
-            // 5. Va chạm trần / sàn
-            if (birdState.y < 0 || birdState.y + BIRD_SIZE > gameHeight) {
-                isGameOver = true
+        // --- Game Loop ---
+        val lastUpdateTime = rememberUpdatedState(System.nanoTime())
+        LaunchedEffect(gameState, gameHeight, gameWidth) {
+            if (gameState != GameState.Playing && gameState != GameState.Crashing) {
+                return@LaunchedEffect
             }
-
-            delay(16)
+            var lastTime = lastUpdateTime.value
+            while (gameState == GameState.Playing || gameState == GameState.Crashing) {
+                val currentTime = System.nanoTime()
+                val dt = (currentTime - lastTime) / 1_000_000_000f // Delta time in seconds
+                lastTime = currentTime
+                if (gameState == GameState.Playing) {
+                    groundOffset = (groundOffset - PIPE_SPEED * dt) % 100f
+                }
+                val newVelocity = birdState.velocity + GRAVITY * dt
+                val newY = (birdState.y + birdState.velocity * dt).coerceIn(0f, gameHeight)
+                val newRotation = (newVelocity / (JUMP_VELOCITY * -1.5f))
+                    .coerceIn(-90f, 30f)
+                birdState = birdState.copy(velocity = newVelocity, y = newY, rotation = newRotation)
+                if (gameState == GameState.Playing) {
+                    val newPipes = pipes.map { pipe ->
+                        pipe.copy(x = pipe.x - PIPE_SPEED * dt)
+                    }.filter { it.x > -PIPE_WIDTH }
+                    if (newPipes.last().x < gameWidth - (PIPE_SPEED * 1.8f)) {
+                        val newGapY = Random.nextInt(
+                            (gameHeight * 0.2f).toInt(),
+                            (gameHeight * 0.8f).toInt()
+                        ).toFloat()
+                        pipes = newPipes + PipeState(x = gameWidth + PIPE_WIDTH, gapY = newGapY)
+                    } else {
+                        pipes = newPipes
+                    }
+                    val birdRect = Rect(
+                        birdX - BIRD_SIZE / 2,
+                        birdState.y - BIRD_SIZE / 2,
+                        birdX + BIRD_SIZE / 2,
+                        birdState.y + BIRD_SIZE / 2
+                    )
+                    var collision = false
+                    pipes.forEach { pipe ->
+                        val topPipeRect = Rect(
+                            pipe.x, 0f,
+                            pipe.x + PIPE_WIDTH, pipe.gapY - PIPE_GAP / 2
+                        )
+                        val bottomPipeRect = Rect(
+                            pipe.x, pipe.gapY + PIPE_GAP / 2,
+                            pipe.x + PIPE_WIDTH, gameHeight
+                        )
+                        if (birdRect.overlaps(topPipeRect) || birdRect.overlaps(bottomPipeRect)) {
+                            collision = true
+                        }
+                        if (!pipe.scored && pipe.x + PIPE_WIDTH < birdX) {
+                            pipe.scored = true
+                            score++
+                        }
+                    }
+                    if (birdState.y + BIRD_SIZE > gameHeight) {
+                        collision = true
+                    }
+                    if (birdState.y <= 0f) {
+                        birdState = birdState.copy(y = 0f, velocity = 0f)
+                    }
+                    if (collision) {
+                        gameState = GameState.Crashing
+                    }
+                }
+                if (gameState == GameState.Crashing) {
+                    if (birdState.y + BIRD_SIZE >= gameHeight) {
+                        gameState = GameState.GameOver
+                        birdState = birdState.copy(
+                            y = gameHeight - BIRD_SIZE,
+                            velocity = 0f,
+                            rotation = -90f
+                        )
+                    }
+                }
+                delay(16)
+            }
         }
-    }
 
-    // --- Hành động nhảy ---
-    val jump: () -> Unit = {
-        if (isPlaying && !isGameOver) {
-            birdState = birdState.copy(velocity = JUMP_VELOCITY)
-        } else if (!isPlaying && !isGameOver) {
-            isPlaying = true
-        }
-    }
-
-    // --- Giao diện ---
-    Column(
-        modifier = Modifier
+        // --- Giao diện (Layered UI) ---
+        val fullModifier = Modifier
             .fillMaxSize()
-            .pointerInput(isGameOver) {
-                detectTapGestures { jump() }
-            },
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        // --- Score và Reset ---
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text("Score: $score", style = MaterialTheme.typography.headlineMedium)
-            Button(onClick = {
-                birdState = BirdState(y = 500f, velocity = 0f)
-                pipes = listOf(PipeState(x = 1000f, gapY = 300f))
-                score = 0
-                isGameOver = false
-                isPlaying = false
-            }) {
-                Text(if (isGameOver) "Chơi Lại" else "Reset")
+            .pointerInput(gameState) {
+                detectTapGestures { tapAction() }
             }
-        }
 
-        // --- Khu vực Game ---
+        // --- 1. Khu vực Game (Canvas) ---
         Canvas(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
+            modifier = fullModifier
                 .background(Color(0xFF7DE6F5))
         ) {
-            val gameHeight = size.height
-            val birdX = size.width / 4
             val birdY = birdState.y.coerceIn(0f, gameHeight - BIRD_SIZE)
 
-            // --- 1. Vẽ Ống ---
+            // --- 1.1. Vẽ Ống (ĐÃ ĐƯA LẠI VỀ CODE VẼ) ---
             pipes.forEach { pipe ->
                 val pipeColor = Color(0xFF4CAF50)
                 val pipeShadow = Color(0xFF2E7D32)
 
+                // Ống trên
                 drawRoundRect(
                     color = pipeColor,
                     topLeft = Offset(pipe.x, 0f),
@@ -184,6 +223,7 @@ fun FlappyBirdScreen() {
                     topLeft = Offset(pipe.x, (pipe.gapY - PIPE_GAP / 2) - 10),
                     size = Size(PIPE_WIDTH, 10f)
                 )
+                // Ống dưới
                 drawRoundRect(
                     color = pipeColor,
                     topLeft = Offset(pipe.x, pipe.gapY + PIPE_GAP / 2),
@@ -195,60 +235,25 @@ fun FlappyBirdScreen() {
                     topLeft = Offset(pipe.x, pipe.gapY + PIPE_GAP / 2),
                     size = Size(PIPE_WIDTH, 10f)
                 )
+            }
 
-                // --- Hitbox ống (màu đỏ trong suốt để debug) ---
-                drawRect(
-                    color = Color.Red.copy(alpha = 0.3f),
-                    topLeft = Offset(pipe.x, 0f),
-                    size = Size(PIPE_WIDTH, pipe.gapY - PIPE_GAP / 2)
-                )
-                drawRect(
-                    color = Color.Red.copy(alpha = 0.3f),
-                    topLeft = Offset(pipe.x, pipe.gapY + PIPE_GAP / 2),
-                    size = Size(PIPE_WIDTH, gameHeight - (pipe.gapY + PIPE_GAP / 2))
+            // --- 1.2. Vẽ Chim (VỚI XOAY, DÙNG ẢNH) ---
+            withTransform({
+                rotate(degrees = birdState.rotation, pivot = Offset(birdX, birdY))
+            }) {
+                // Vẽ ảnh chim
+                drawImage(
+                    image = birdBitmap,
+                    dstOffset = IntOffset( // Dịch chuyển về top-left để (birdX, birdY) là tâm
+                        (birdX - BIRD_SIZE / 2).toInt(),
+                        (birdY - BIRD_SIZE / 2).toInt()
+                    ),
+                    dstSize = IntSize(BIRD_SIZE.toInt(), BIRD_SIZE.toInt())
                 )
             }
 
-            // --- 2. Vẽ Chim ---
-            drawCircle(
-                color = Color(0xFFFFEB3B),
-                radius = BIRD_SIZE / 2,
-                center = Offset(birdX, birdY)
-            )
-            drawOval(
-                color = Color(0xFFFBC02D),
-                topLeft = Offset(birdX - 15, birdY - 10),
-                size = Size(30f, 20f)
-            )
-            drawCircle(
-                color = Color.White,
-                radius = 6f,
-                center = Offset(birdX + 10, birdY - 8)
-            )
-            drawCircle(
-                color = Color.Black,
-                radius = 3f,
-                center = Offset(birdX + 10, birdY - 8)
-            )
-            drawPath(
-                path = androidx.compose.ui.graphics.Path().apply {
-                    moveTo(birdX + 20, birdY)
-                    lineTo(birdX + 30, birdY + 5)
-                    lineTo(birdX + 20, birdY + 10)
-                    close()
-                },
-                color = Color(0xFFFF9800)
-            )
-
-            // --- Hitbox chim (màu đỏ trong suốt để debug) ---
-            drawRect(
-                color = Color.Red.copy(alpha = 0.3f),
-                topLeft = Offset(birdX - BIRD_SIZE / 2, birdY - BIRD_SIZE / 2),
-                size = Size(BIRD_SIZE, BIRD_SIZE)
-            )
-
-            // --- Game Over Overlay ---
-            if (isGameOver) {
+            // --- 1.3. Game Over Overlay (Mờ) ---
+            if (gameState == GameState.Crashing || gameState == GameState.GameOver) {
                 drawRect(
                     color = Color.Black.copy(alpha = 0.5f),
                     topLeft = Offset.Zero,
@@ -257,27 +262,71 @@ fun FlappyBirdScreen() {
             }
         }
 
-        // --- Trạng thái Game Overlay ---
-        if (isGameOver) {
-            Text(
-                "GAME OVER! 💥",
-                modifier = Modifier.padding(top = 100.dp).offset(y = (-100).dp),
-                style = MaterialTheme.typography.headlineLarge.copy(color = Color.Red)
-            )
-        } else if (!isPlaying) {
-            Text(
-                "TAP để BẮT ĐẦU!",
-                modifier = Modifier.padding(top = 100.dp).offset(y = (-100).dp),
-                style = MaterialTheme.typography.headlineMedium.copy(color = Color.White)
-            )
+        // --- 2. Score và Nút (Nằm trên cùng) ---
+        // THAY ĐỔI: Lấy Activity context
+        val activity = (LocalContext.current as? Activity)
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+                .align(Alignment.TopCenter),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            val buttonModifier = Modifier.width(120.dp) // Đặt chiều rộng cố định cho nút
+
+            // THAY ĐỔI: Nút Quay lại Menu
+            Button(
+                onClick = { activity?.finish() }, // Đóng Activity hiện tại
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
+                modifier = buttonModifier
+            ) {
+                Text("Quay lại")
+            }
+
+            // Giữ Score ở giữa
+            Text("Score: $score", style = MaterialTheme.typography.headlineMedium.copy(color = Color.White))
+
+            // THAY ĐỔI: Nút Chơi lại (đặt trong Box để giữ cân bằng)
+            Box(modifier = buttonModifier) { // Box giữ chỗ
+                if (gameState == GameState.GameOver) {
+                    Button(
+                        onClick = tapAction,
+                        modifier = Modifier.fillMaxWidth() // Làm nút đầy Box
+                    ) {
+                        Text("Chơi Lại")
+                    }
+                }
+            }
         }
 
-        // --- Đất ---
+        // --- 3. Trạng thái Game Overlay (Nằm giữa) ---
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            if (gameState == GameState.GameOver) {
+                Text(
+                    "GAME OVER! 💥",
+                    style = MaterialTheme.typography.headlineLarge.copy(color = Color.Red)
+                )
+            } else if (gameState == GameState.Ready) {
+                Text(
+                    "TAP ĐỂ BẮT ĐẦU!",
+                    style = MaterialTheme.typography.headlineMedium.copy(color = Color.White)
+                )
+            }
+        }
+
+
+        // --- 4. Đất (Nằm dưới cùng) ---
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(60.dp)
                 .background(Color(0xFFD2B48C))
+                .align(Alignment.BottomCenter)
         ) {
             Canvas(modifier = Modifier.fillMaxSize()) {
                 for (i in 0..size.width.toInt() step 100) {
@@ -291,3 +340,4 @@ fun FlappyBirdScreen() {
         }
     }
 }
+

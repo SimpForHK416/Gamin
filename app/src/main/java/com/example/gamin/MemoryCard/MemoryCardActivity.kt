@@ -1,5 +1,3 @@
-// Đặt trong thư mục: com.example.gamin/MemoryCard/MemoryCardActivity.kt
-
 package com.example.gamin.MemoryCard
 
 import android.os.Bundle
@@ -16,9 +14,11 @@ class MemoryCardActivity : ComponentActivity() {
         setContent {
             GaminTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
-                    MemoryCardScreen()
+                    // THAY ĐỔI: Gọi Composable điều hướng gốc
+                    MemoryCardGameRoot()
                 }
             }
         }
     }
 }
+

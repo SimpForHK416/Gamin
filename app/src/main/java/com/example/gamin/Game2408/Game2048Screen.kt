@@ -1,5 +1,6 @@
 package com.example.gamin.game2408
 
+import android.app.Activity // THAY ĐỔI: Thêm import
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
@@ -17,6 +18,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalContext // THAY ĐỔI: Thêm import
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -36,6 +38,9 @@ fun Game2048Screen() {
     val minDragDistance = 50 * density
     var dragAccumulator by remember { mutableStateOf(Offset.Zero) }
     var moveTrigger by remember { mutableStateOf(false) }
+
+    // THAY ĐỔI: Lấy Activity context
+    val activity = (LocalContext.current as? Activity)
 
     // --- LOGIC TRÌ HOÃN ĐỂ THÊM Ô MỚI ---
     LaunchedEffect(moveTrigger) {
@@ -101,10 +106,19 @@ fun Game2048Screen() {
         // --- Điểm số ---
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.SpaceBetween, // Sắp xếp 3 mục
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // THAY ĐỔI: Thêm nút Quay lại
+            Button(
+                onClick = { activity?.finish() },
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
+            ) {
+                Text("Quay lại")
+            }
+
             Text("Score: ${state.score}", style = MaterialTheme.typography.titleMedium)
+
             Button(onClick = {
                 state = initialize2048Game()
                 moveTrigger = false // Reset trigger khi bắt đầu game mới
