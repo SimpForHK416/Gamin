@@ -28,3 +28,5 @@ Upcoming feature:
 Calculating score (some game)
 
 Scoreboard
+
+Testing commiting
