@@ -22,7 +22,7 @@ import com.example.gamin.MineSweeper.MinesweeperActivity
 import com.example.gamin.ui.theme.GaminTheme
 import com.example.gamin.game2408.Game2408Activity
 import com.example.gamin.MemoryCard.MemoryCardActivity
-import com.example.gamin.Pong.PongActivity // <-- THÊM MỚI IMPORT
+import com.example.gamin.Pong.PongActivity
 import com.example.gamin.tetris.TetrisActivity
 
 data class GameItem(
@@ -100,11 +100,11 @@ fun GameMenu(onGameClick: (GameItem) -> Unit) {
         ),
 
         // =============================================
-        // THÊM MỚI GAME PONG
+        // ĐÃ CẬP NHẬT GAME PONG
         GameItem(
             "Pong",
             "Dùng thanh trượt di chuyển lên xuống để đánh bóng. Đừng để lọt!",
-            R.drawable.ic_tictactoe, // <-- THAY THẾ BẰNG ic_pong_placeholder KHI CÓ
+            R.drawable.ic_pong, // <-- ĐÃ THAY ĐỔI ICON THEO YÊU CẦU
             PongActivity::class.java
         ),
         // =============================================

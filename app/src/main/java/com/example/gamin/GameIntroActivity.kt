@@ -20,7 +20,8 @@ import com.example.gamin.snake.SnakeActivity
 import com.example.gamin.MineSweeper.MinesweeperActivity
 import com.example.gamin.ui.theme.GaminTheme
 import com.example.gamin.game2408.Game2408Activity
-import com.example.gamin.Pong.PongActivity // <-- THÊM MỚI IMPORT
+import com.example.gamin.Pong.PongActivity
+import com.example.gamin.tetris.TetrisActivity
 
 class GameIntroActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -65,10 +66,14 @@ fun GameIntroScreen(
     val isFlappyBirdGame = targetClass == FlappyBirdActivity::class.java
     val isMemoryCardGame = targetClass == MemoryCardActivity::class.java
     val is2048Game = targetClass == Game2408Activity::class.java
-    val isPongGame = targetClass == PongActivity::class.java // <-- THÊM MỚI
+    val isPongGame = targetClass == PongActivity::class.java // <-- Giữ nguyên
+    val isTetrisGame = targetClass == TetrisActivity::class.java
 
-    val isSinglePlayerGame = isSnakeGame || isMinesweeperGame || is2048Game || isFlappyBirdGame || isMemoryCardGame || isPongGame // <-- THÊM MỚI
-    val isMultiplayerGame = !isSinglePlayerGame
+    // <-- ĐÃ SỬA: Xóa Pong (isPongGame) khỏi danh sách chơi đơn -->
+    val isSinglePlayerGame = isSnakeGame || isMinesweeperGame || is2048Game || isFlappyBirdGame || isMemoryCardGame
+
+    // <-- ĐÃ SỬA: Game nhiều người "cũ" (X/O) -->
+    val isMultiplayerGame = !isSinglePlayerGame && !isTetrisGame && !isPongGame
 
 
     Column(
@@ -93,66 +98,80 @@ fun GameIntroScreen(
         Spacer(modifier = Modifier.height(24.dp))
 
         // --- Logic Hiển thị Nút Chơi Game ---
-        if (isSinglePlayerGame) {
+
+        // (Logic Tetris giữ nguyên)
+        if (isTetrisGame) {
+            Text("Chọn độ khó:", style = MaterialTheme.typography.titleMedium)
+            Spacer(modifier = Modifier.height(16.dp))
+            val difficulties = listOf("Dễ", "Trung bình", "Khó")
+            difficulties.forEach { difficulty ->
+                Button(
+                    onClick = {
+                        if (targetClass != null) {
+                            val intent = Intent(context, targetClass)
+                            intent.putExtra("difficulty", difficulty)
+                            context.startActivity(intent)
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+                ) { Text(difficulty) }
+            }
+        }
+
+        // (Logic game 1 người chơi khác giữ nguyên)
+        else if (isSinglePlayerGame) {
             Button(
                 onClick = {
                     if (targetClass != null) {
                         val intent = Intent(context, targetClass)
                         context.startActivity(intent)
-                    } else {
-                        Log.e("DEBUG", "Target class is null")
                     }
                 },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                // Tùy chỉnh text cho từng game (Nếu muốn)
                 val buttonText = when {
                     isMemoryCardGame -> "Chơi ngay 🃏"
                     isFlappyBirdGame -> "Chơi ngay 🐦"
                     is2048Game -> "Chơi ngay 🔢"
                     isMinesweeperGame -> "Chơi ngay 💣"
-                    isPongGame -> "Chơi ngay 🏓" // <-- THÊM MỚI
+                    // (Pong đã bị xóa khỏi đây)
                     else -> "Chơi ngay 🐍"
                 }
                 Text(text = buttonText)
             }
         }
-        else if (isMultiplayerGame) {
-            // (Code X/O của bạn giữ nguyên)
-            Button(
-                onClick = {
-                    if (targetClass != null) {
-                        val intent = Intent(context, targetClass)
-                        intent.putExtra("mode", "PVP")
-                        context.startActivity(intent)
-                    } else {
-                        Log.e("DEBUG", "Target class is null")
-                    }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 8.dp)
-            ) {
-                Text("Chơi với người (PVP)")
-            }
 
+        // <-- ĐÃ SỬA: Gộp Pong vào chung logic với game nhiều người -->
+        else if (isMultiplayerGame || isPongGame) {
             Button(
                 onClick = {
                     if (targetClass != null) {
                         val intent = Intent(context, targetClass)
                         intent.putExtra("mode", "PVE")
                         context.startActivity(intent)
-                    } else {
-                        Log.e("DEBUG", "Target class is null")
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 8.dp)
+            ) {
+                Text("Chơi với máy (PVE)")
+            }
+
+            Button(
+                onClick = {
+                    if (targetClass != null) {
+                        val intent = Intent(context, targetClass)
+                        intent.putExtra("mode", "PVP")
+                        context.startActivity(intent)
                     }
                 },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Chơi với máy (PVE)")
+                Text("Chơi với người (PVP)")
             }
         }
         // --- Kết thúc Logic Nút Chơi Game ---
-
 
         if (targetClass == null) {
             Spacer(modifier = Modifier.height(16.dp))

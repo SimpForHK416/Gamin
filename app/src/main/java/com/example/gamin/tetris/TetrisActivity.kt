@@ -9,8 +9,12 @@ class TetrisActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Tạo view game trực tiếp, không cần XML
-        tetrisView = TetrisView(this)
+        // <-- LẤY ĐỘ KHÓ TỪ INTENT -->
+        // Đặt "Trung bình" làm mặc định nếu không có gì được truyền
+        val difficulty = intent.getStringExtra("difficulty") ?: "Trung bình"
+
+        // <-- TRUYỀN ĐỘ KHÓ VÀO VIEW -->
+        tetrisView = TetrisView(this, difficulty)
         setContentView(tetrisView)
     }
 
