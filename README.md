@@ -14,9 +14,9 @@ Flappy Bird clone (done)
 
 Memory Match (Card flipping) (done)
 
-Tower Blocxx clone 
+Tower Blocxx clone (Vũ Minh Đức)
 
-Arkanoid
+Arkanoid (Vũ Minh Đức)
 
 Minesweeper (done)
 
