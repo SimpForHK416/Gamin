@@ -24,6 +24,8 @@ Simon([Memory Lights](https://en.wikipedia.org/wiki/Simon_(game)))
 
 Sliding Puzzle ([15 Puzzle](https://en.wikipedia.org/wiki/15_puzzle))
 
+tetris (done)
+
 
 Upcoming feature:
 
