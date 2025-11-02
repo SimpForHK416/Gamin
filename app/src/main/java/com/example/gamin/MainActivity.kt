@@ -23,6 +23,7 @@ import com.example.gamin.ui.theme.GaminTheme
 import com.example.gamin.game2408.Game2408Activity
 import com.example.gamin.MemoryCard.MemoryCardActivity
 import com.example.gamin.Pong.PongActivity // <-- THÊM MỚI IMPORT
+import com.example.gamin.tetris.TetrisActivity
 
 data class GameItem(
     val title: String,
@@ -105,8 +106,16 @@ fun GameMenu(onGameClick: (GameItem) -> Unit) {
             "Dùng thanh trượt di chuyển lên xuống để đánh bóng. Đừng để lọt!",
             R.drawable.ic_tictactoe, // <-- THAY THẾ BẰNG ic_pong_placeholder KHI CÓ
             PongActivity::class.java
-        )
+        ),
         // =============================================
+        //Tetris
+        GameItem(
+            "Tetris",
+            "Luật chơi: Xếp các khối gạch rơi để tạo hàng ngang đầy. Hàng đầy sẽ biến mất!",
+            R.drawable.ic_tetris_placeholder,
+            TetrisActivity::class.java
+        )
+
     )
 
     LazyVerticalGrid(

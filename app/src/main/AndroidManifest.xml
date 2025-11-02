@@ -47,6 +47,11 @@
             android:label="Pong"
             android:screenOrientation="landscape" /> <!-- Pong nên chơi ở chế độ ngang -->
         <!-- ============================================= -->
+        <activity
+            android:name=".tetris.TetrisActivity"
+            android:exported="false"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
+
 
         <activity
             android:name=".MainActivity"
