@@ -11,17 +11,19 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.*
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import kotlin.math.*
+import kotlin.random.Random
 
+// ============ CONSTANTS ============
 private const val PADDLE_HEIGHT = 20f
 private const val PADDLE_WIDTH = 150f
 private const val PADDLE_Y_OFFSET = 60f
@@ -30,7 +32,7 @@ private const val BALL_SIZE = 30f
 private const val BALL_SPEED = 700f
 private const val INITIAL_BALL_ANGLE = 60.0
 
-private const val BRICK_ROWS = 5
+private const val BRICK_ROWS = 6
 private const val BRICK_COLS = 8
 private const val BRICK_PADDING = 5f
 private const val BRICK_HEIGHT = 40f
@@ -39,38 +41,50 @@ private const val BRICK_SCORE = 10
 private const val SCORE_PANEL_HEIGHT = 90f
 private const val TOP_PADDING_OFFSET = SCORE_PANEL_HEIGHT + 10f
 
+// ============ DATA MODELS ============
 sealed class GameState {
     object Ready : GameState()
     object Playing : GameState()
     object GameOver : GameState()
-    object Win : GameState()
 }
 
-data class PaddleState(val x: Float, val lives: Int = 3)
+data class PaddleState(val x: Float)
 data class BallState(val x: Float, val y: Float, val velocityX: Float, val velocityY: Float)
 data class BrickState(val rect: Rect, val isDestroyed: Boolean = false, val color: Color)
 
-fun createBricks(gameWidth: Float): List<BrickState> {
+// ============ WAVE GENERATOR ============
+fun createBrickPattern(gameWidth: Float, wave: Int): List<BrickState> {
     val totalBrickWidth = gameWidth - BRICK_PADDING * (BRICK_COLS + 1)
     val brickWidth = totalBrickWidth / BRICK_COLS
-    val colors = listOf(Color.Red, Color(0xFF757575), Color.Yellow, Color.Green, Color.Blue)
+    val colors = listOf(Color.Red, Color.Yellow, Color.Green, Color.Cyan, Color.Magenta, Color(0xFFFFA500))
 
     val bricks = mutableListOf<BrickState>()
+    val patternType = wave % 5 // chọn pattern theo wave (và random)
     for (row in 0 until BRICK_ROWS) {
-        val brickY = TOP_PADDING_OFFSET + BRICK_PADDING + row * (BRICK_HEIGHT + BRICK_PADDING)
         for (col in 0 until BRICK_COLS) {
             val brickX = BRICK_PADDING + col * (brickWidth + BRICK_PADDING)
-            bricks.add(
-                BrickState(
-                    rect = Rect(
-                        left = brickX,
-                        top = brickY,
-                        right = brickX + brickWidth,
-                        bottom = brickY + BRICK_HEIGHT
-                    ),
-                    color = colors[row % colors.size]
+            val brickY = TOP_PADDING_OFFSET + row * (BRICK_HEIGHT + BRICK_PADDING)
+            val show = when (patternType) {
+                0 -> true // full block
+                1 -> (row + col) % 2 == 0 // checkerboard
+                2 -> col == row || col == BRICK_COLS - row - 1 // X pattern
+                3 -> row < BRICK_ROWS / 2 && col in (2..5) // upper block
+                4 -> Random.nextBoolean() // random scattered
+                else -> true
+            }
+            if (show) {
+                bricks.add(
+                    BrickState(
+                        rect = Rect(
+                            left = brickX,
+                            top = brickY,
+                            right = brickX + brickWidth,
+                            bottom = brickY + BRICK_HEIGHT
+                        ),
+                        color = colors.random()
+                    )
                 )
-            )
+            }
         }
     }
     return bricks
@@ -86,112 +100,131 @@ fun createInitialBall(gameWidth: Float, gameHeight: Float): BallState {
     )
 }
 
+// ============ MAIN GAME ============
+
 @SuppressLint("ContextCastToActivity", "UnusedBoxWithConstraintsScope")
 @Composable
 fun ArkanoidScreen() {
     val context = LocalContext.current
-    val activity = (LocalContext.current as? Activity)
+    val activity = (context as? Activity)
 
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-        val gameHeight = constraints.maxHeight.toFloat()
         val gameWidth = constraints.maxWidth.toFloat()
+        val gameHeight = constraints.maxHeight.toFloat()
 
-        var paddleState by remember { mutableStateOf(PaddleState(x = gameWidth / 2)) }
-        var ballState by remember {
-            mutableStateOf(createInitialBall(gameWidth, gameHeight).copy(velocityX = 0f, velocityY = 0f))
-        }
-        var bricks by remember { mutableStateOf(createBricks(gameWidth)) }
+        var paddle by remember { mutableStateOf(PaddleState(gameWidth / 2)) }
+        var ball by remember { mutableStateOf(createInitialBall(gameWidth, gameHeight).copy(velocityX = 0f, velocityY = 0f)) }
+        var bricks by remember { mutableStateOf(createBrickPattern(gameWidth, wave = 1)) }
         var gameState by remember { mutableStateOf<GameState>(GameState.Ready) }
+
         var score by remember { mutableIntStateOf(0) }
-        var currentLives by remember { mutableIntStateOf(3) }
+        var lives by remember { mutableIntStateOf(3) }
+        var wave by remember { mutableIntStateOf(1) }
 
-        val fullReset: () -> Unit = {
-            paddleState = PaddleState(x = gameWidth / 2)
-            bricks = createBricks(gameWidth)
+        // === RESET FUNCTIONS ===
+        val resetBall = {
+            ball = createInitialBall(gameWidth, gameHeight).copy(velocityX = 0f, velocityY = 0f)
+            gameState = GameState.Ready
+        }
+
+        val nextWave = {
+            wave++
+            bricks = createBrickPattern(gameWidth, wave)
+            ball = createInitialBall(gameWidth, gameHeight).copy(velocityX = 0f, velocityY = 0f)
+            gameState = GameState.Ready
+        }
+
+        val restartGame = {
             score = 0
-            currentLives = 3
-            gameState = GameState.Ready
-            ballState = createInitialBall(gameWidth, gameHeight).copy(velocityX = 0f, velocityY = 0f)
-        }
-
-        val resetBall: () -> Unit = {
-            ballState = createInitialBall(gameWidth, gameHeight).copy(velocityX = 0f, velocityY = 0f)
+            lives = 3
+            wave = 1
+            paddle = PaddleState(gameWidth / 2)
+            bricks = createBrickPattern(gameWidth, wave)
+            ball = createInitialBall(gameWidth, gameHeight).copy(velocityX = 0f, velocityY = 0f)
             gameState = GameState.Ready
         }
 
-        val lastUpdateTime = rememberUpdatedState(System.nanoTime())
-        LaunchedEffect(gameState, gameHeight, gameWidth) {
+        // === GAME LOOP ===
+        LaunchedEffect(gameState) {
             if (gameState != GameState.Playing) return@LaunchedEffect
-            var lastTime = lastUpdateTime.value
+            var lastTime = System.nanoTime()
 
             while (gameState == GameState.Playing) {
-                val currentTime = System.nanoTime()
-                val dt = (currentTime - lastTime) / 1_000_000_000f
-                lastTime = currentTime
+                val now = System.nanoTime()
+                val dt = (now - lastTime) / 1_000_000_000f
+                lastTime = now
 
-                var newBallX = ballState.x + ballState.velocityX * dt
-                var newBallY = ballState.y + ballState.velocityY * dt
-                var currentVx = ballState.velocityX
-                var currentVy = ballState.velocityY
+                var newX = ball.x + ball.velocityX * dt
+                var newY = ball.y + ball.velocityY * dt
+                var vx = ball.velocityX
+                var vy = ball.velocityY
 
-                val ballRect = Rect(
-                    newBallX - BALL_SIZE / 2, newBallY - BALL_SIZE / 2,
-                    newBallX + BALL_SIZE / 2, newBallY + BALL_SIZE / 2
-                )
+                // wall collision
+                if (newX - BALL_SIZE / 2 < 0) { vx *= -1; newX = BALL_SIZE / 2 }
+                if (newX + BALL_SIZE / 2 > gameWidth) { vx *= -1; newX = gameWidth - BALL_SIZE / 2 }
+                if (newY - BALL_SIZE / 2 < SCORE_PANEL_HEIGHT) { vy *= -1; newY = SCORE_PANEL_HEIGHT + BALL_SIZE / 2 }
 
-                if (newBallX - BALL_SIZE / 2 < 0f) {
-                    currentVx *= -1; newBallX = BALL_SIZE / 2
-                } else if (newBallX + BALL_SIZE / 2 > gameWidth) {
-                    currentVx *= -1; newBallX = gameWidth - BALL_SIZE / 2
-                }
-                if (newBallY - BALL_SIZE / 2 < SCORE_PANEL_HEIGHT) {
-                    currentVy *= -1
-                    newBallY = SCORE_PANEL_HEIGHT + BALL_SIZE / 2
-                }
-                if (newBallY + BALL_SIZE / 2 > gameHeight - PADDLE_Y_OFFSET - TOP_PADDING_OFFSET) {
-                    currentLives--
-                    if (currentLives <= 0) gameState = GameState.GameOver
-                    else {
-                        resetBall(); return@LaunchedEffect
+                // bottom = lose life
+                if (newY + BALL_SIZE / 2 > gameHeight - PADDLE_Y_OFFSET - TOP_PADDING_OFFSET) {
+                    lives--
+                    if (lives <= 0) {
+                        gameState = GameState.GameOver
+                    } else {
+                        resetBall()
                     }
                 }
 
                 val paddleRect = Rect(
-                    paddleState.x - PADDLE_WIDTH / 2,
+                    paddle.x - PADDLE_WIDTH / 2,
                     gameHeight - PADDLE_Y_OFFSET - PADDLE_HEIGHT - TOP_PADDING_OFFSET,
-                    paddleState.x + PADDLE_WIDTH / 2,
+                    paddle.x + PADDLE_WIDTH / 2,
                     gameHeight - PADDLE_Y_OFFSET - TOP_PADDING_OFFSET
                 )
-                if (ballRect.overlaps(paddleRect) && currentVy > 0) {
-                    currentVy *= -1
-                    newBallY = paddleRect.top - BALL_SIZE / 2 - 1f
-                    val hitPoint = newBallX - paddleState.x
-                    val normalizedHit = (hitPoint / (PADDLE_WIDTH / 2)).coerceIn(-1f, 1f)
-                    val maxAngleRadians = Math.toRadians(80.0)
-                    val newAngle = maxAngleRadians * normalizedHit
-                    val speed = sqrt(currentVx * currentVx + currentVy * currentVy)
-                    currentVx = (speed * sin(newAngle)).toFloat()
-                    currentVy = -(speed * cos(newAngle)).toFloat()
+
+                val ballRect = Rect(
+                    newX - BALL_SIZE / 2, newY - BALL_SIZE / 2,
+                    newX + BALL_SIZE / 2, newY + BALL_SIZE / 2
+                )
+
+                // paddle collision
+                if (ballRect.overlaps(paddleRect) && vy > 0) {
+                    vy *= -1
+                    newY = paddleRect.top - BALL_SIZE / 2 - 1
+                    val hitPoint = newX - paddle.x
+                    val normalized = (hitPoint / (PADDLE_WIDTH / 2)).coerceIn(-1f, 1f)
+                    val maxAngle = Math.toRadians(80.0)
+                    val newAngle = maxAngle * normalized
+                    val speed = sqrt(vx * vx + vy * vy)
+                    vx = (speed * sin(newAngle)).toFloat()
+                    vy = -(speed * cos(newAngle)).toFloat()
                 }
 
-                var updatedBricks = bricks.toMutableList()
-                for (i in updatedBricks.indices) {
-                    val brick = updatedBricks[i]
-                    if (!brick.isDestroyed && ballRect.overlaps(brick.rect)) {
-                        score += BRICK_SCORE
-                        updatedBricks[i] = brick.copy(isDestroyed = true)
-                        currentVy *= -1
+                // brick collision
+                var newBricks = bricks.toMutableList()
+                for (i in newBricks.indices) {
+                    val b = newBricks[i]
+                    if (!b.isDestroyed && ballRect.overlaps(b.rect)) {
+                        newBricks[i] = b.copy(isDestroyed = true)
+                        vy *= -1
+                        score += BRICK_SCORE * wave
                         break
                     }
                 }
-                bricks = updatedBricks
-                if (bricks.all { it.isDestroyed }) gameState = GameState.Win
 
-                ballState = ballState.copy(x = newBallX, y = newBallY, velocityX = currentVx, velocityY = currentVy)
+                bricks = newBricks
+
+                // next wave
+                if (bricks.all { it.isDestroyed }) {
+                    nextWave()
+                    continue
+                }
+
+                ball = ball.copy(x = newX, y = newY, velocityX = vx, velocityY = vy)
                 delay(16)
             }
         }
 
+        // === DRAW ===
         Canvas(
             modifier = Modifier
                 .fillMaxSize()
@@ -199,49 +232,56 @@ fun ArkanoidScreen() {
                 .pointerInput(Unit) {
                     detectHorizontalDragGestures { change, dragAmount ->
                         change.consume()
-                        val newX = (paddleState.x + dragAmount).coerceIn(
-                            PADDLE_WIDTH / 2, gameWidth - PADDLE_WIDTH / 2
+                        paddle = paddle.copy(
+                            x = (paddle.x + dragAmount).coerceIn(PADDLE_WIDTH / 2, gameWidth - PADDLE_WIDTH / 2)
                         )
-                        paddleState = paddleState.copy(x = newX)
                     }
                 }
                 .pointerInput(gameState) {
                     detectTapGestures {
-                        if (gameState == GameState.Ready) {
-                            val initialBall = createInitialBall(gameWidth, gameHeight)
-                            ballState = initialBall.copy(
-                                x = paddleState.x,
-                                y = initialBall.y,
-                                velocityX = initialBall.velocityX,
-                                velocityY = initialBall.velocityY
-                            )
-                            gameState = GameState.Playing
-                        } else if (gameState == GameState.GameOver || gameState == GameState.Win) fullReset()
+                        when (gameState) {
+                            GameState.Ready -> {
+                                val init = createInitialBall(gameWidth, gameHeight)
+                                ball = init.copy(
+                                    x = paddle.x,
+                                    y = init.y,
+                                    velocityX = init.velocityX,
+                                    velocityY = init.velocityY
+                                )
+                                gameState = GameState.Playing
+                            }
+                            GameState.GameOver -> restartGame()
+                            else -> {}
+                        }
                     }
                 }
         ) {
+            // bricks
             bricks.filter { !it.isDestroyed }.forEach { brick ->
                 drawRoundRect(
                     color = brick.color,
                     topLeft = brick.rect.topLeft,
                     size = brick.rect.size,
-                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(8f, 8f)
+                    cornerRadius = CornerRadius(8f, 8f)
                 )
             }
 
+            // paddle
             drawRoundRect(
                 color = Color.White,
                 topLeft = Offset(
-                    paddleState.x - PADDLE_WIDTH / 2,
+                    paddle.x - PADDLE_WIDTH / 2,
                     gameHeight - PADDLE_Y_OFFSET - PADDLE_HEIGHT - TOP_PADDING_OFFSET
                 ),
                 size = Size(PADDLE_WIDTH, PADDLE_HEIGHT),
-                cornerRadius = androidx.compose.ui.geometry.CornerRadius(10f, 10f)
+                cornerRadius = CornerRadius(10f, 10f)
             )
 
-            drawCircle(Color.Yellow, BALL_SIZE / 2, Offset(ballState.x, ballState.y))
+            // ball
+            drawCircle(Color.Yellow, BALL_SIZE / 2, Offset(ball.x, ball.y))
         }
 
+        // === HUD ===
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -251,22 +291,22 @@ fun ArkanoidScreen() {
             contentAlignment = Alignment.Center
         ) {
             Text(
-                text = "Score: $score | Lives: $currentLives",
-                style = MaterialTheme.typography.headlineSmall.copy(color = Color.White)
+                text = "Score: $score | Lives: $lives | Wave: $wave",
+                style = MaterialTheme.typography.titleMedium.copy(color = Color.White)
             )
         }
 
+        // === STATUS TEXT ===
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             when (gameState) {
-                GameState.GameOver ->
-                    Text("GAME OVER! 😭", style = MaterialTheme.typography.headlineLarge.copy(color = Color.Red))
-                GameState.Ready ->
-                    Text(
-                        "KÉO ĐỂ DI CHUYỂN, TAP ĐỂ BẮT ĐẦU!",
-                        style = MaterialTheme.typography.headlineMedium.copy(color = Color.White)
-                    )
-                GameState.Win ->
-                    Text("CHIẾN THẮNG! 🎉", style = MaterialTheme.typography.headlineLarge.copy(color = Color.Green))
+                GameState.Ready -> Text(
+                    "TAP ĐỂ BẮT ĐẦU | KÉO ĐỂ DI CHUYỂN",
+                    style = MaterialTheme.typography.titleMedium.copy(color = Color.White)
+                )
+                GameState.GameOver -> Text(
+                    "GAME OVER! TAP ĐỂ CHƠI LẠI 😭",
+                    style = MaterialTheme.typography.headlineLarge.copy(color = Color.Red)
+                )
                 else -> {}
             }
         }

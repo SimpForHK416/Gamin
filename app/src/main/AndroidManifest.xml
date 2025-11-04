@@ -53,6 +53,11 @@
             android:exported="false"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
 
+        <activity
+            android:name=".TowerBloxx.TowerBloxxActivity"
+            android:exported="false"
+            android:label="Tower Bloxx" />
+
 
         <activity
             android:name=".MainActivity"
