@@ -16,7 +16,7 @@ Memory Match (Card flipping) (done)
 
 Tower Blocxx clone (Vũ Minh Đức)
 
-Arkanoid (Vũ Minh Đức)
+Arkanoid (done)
 
 Minesweeper (done)
 
