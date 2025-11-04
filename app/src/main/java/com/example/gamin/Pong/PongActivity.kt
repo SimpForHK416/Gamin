@@ -13,7 +13,6 @@ class PongActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // <-- ĐÃ THÊM: Lấy chế độ chơi từ Intent -->
         val mode = intent.getStringExtra("mode") ?: "PVE"
         val gameMode = if (mode == "PVP") GameMode.PVP else GameMode.PVE
 
@@ -23,7 +22,6 @@ class PongActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = Color.Black
                 ) {
-                    // <-- ĐÃ THÊM: Truyền gameMode vào PongScreen -->
                     PongScreen(gameMode = gameMode)
                 }
             }

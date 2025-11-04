@@ -15,6 +15,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import com.example.gamin.Arkanoid.ArkanoidActivity
 import com.example.gamin.FlappyBird.FlappyBirdActivity
 import com.example.gamin.NoughtsAndCrosses.NoughtsAndCrossesActivity
 import com.example.gamin.snake.SnakeActivity
@@ -114,6 +115,13 @@ fun GameMenu(onGameClick: (GameItem) -> Unit) {
             "Luật chơi: Xếp các khối gạch rơi để tạo hàng ngang đầy. Hàng đầy sẽ biến mất!",
             R.drawable.ic_tetris_placeholder,
             TetrisActivity::class.java
+        ),
+        //arkanoid
+        GameItem(
+            "Arkanoid",
+            "Dùng thanh trượt để đỡ bóng, phá hủy toàn bộ gạch.",
+            R.drawable.ic_arkanoid,
+            ArkanoidActivity::class.java
         )
 
     )

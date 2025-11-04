@@ -16,7 +16,6 @@ class FlappyBirdActivity : ComponentActivity() {
         setContent {
             GaminTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
-                    // Gọi Composable Screen của game
                     FlappyBirdScreen()
                 }
             }

@@ -1,12 +1,12 @@
 package com.example.gamin.snake
 
 import android.annotation.SuppressLint
-import android.app.Activity // THÊM MỚI
+import android.app.Activity
 import android.content.Context
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults // THÊM MỚI
-import androidx.compose.material3.MaterialTheme // THÊM MỚI
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -25,7 +25,6 @@ fun SnakeGameScreen() {
     var isPlaying by remember { mutableStateOf(false) }
     var isGameOver by remember { mutableStateOf(false) }
 
-    // THÊM MỚI: Lấy context activity
     val activity = (LocalContext.current as? Activity)
 
     Column(
@@ -34,24 +33,21 @@ fun SnakeGameScreen() {
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Điểm
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically // THÊM MỚI
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            // THÊM MỚI: Nút Quay lại
             Button(
                 onClick = { activity?.finish() },
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
-                modifier = Modifier.weight(1f) // THÊM MỚI
+                modifier = Modifier.weight(1f)
             ) {
                 Text("Quay lại")
             }
 
-            // Đặt điểm trong Box để căn giữa
             Box(
-                modifier = Modifier.weight(2f), // THÊM MỚI
+                modifier = Modifier.weight(2f),
                 contentAlignment = Alignment.CenterEnd
             ) {
                 Column(horizontalAlignment = Alignment.End) {
@@ -63,7 +59,6 @@ fun SnakeGameScreen() {
 
         Spacer(Modifier.height(16.dp))
 
-        // 🟩 Khu vực game
         SnakeGameCanvas(
             isPlaying = isPlaying,
             onScoreChanged = { score = it },
@@ -79,7 +74,6 @@ fun SnakeGameScreen() {
 
         Spacer(Modifier.height(16.dp))
 
-        // 🕹 Nút Bắt đầu / Chơi lại
         if (!isPlaying && !isGameOver) {
             Button(onClick = {
                 score = 0

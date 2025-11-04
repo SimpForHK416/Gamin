@@ -1,5 +1,3 @@
-// Đặt trong thư mục: com.example.gamin/MineSweeper/MinesweeperGame.kt
-
 package com.example.gamin.MineSweeper
 
 import kotlin.random.Random
@@ -29,10 +27,7 @@ data class MinesweeperGame(
 
     companion object {
         fun initializeBoard(rows: Int, cols: Int, totalMines: Int): List<List<MinesweeperCellState>> {
-            // 1. Tạo bảng trống
             var tempBoard = List(rows) { List(cols) { MinesweeperCellState() } }
-
-            // 2. Rải mìn
             val minePositions = mutableSetOf<Pair<Int, Int>>()
             while (minePositions.size < totalMines) {
                 minePositions.add(Pair(Random.nextInt(rows), Random.nextInt(cols)))
@@ -44,7 +39,6 @@ data class MinesweeperGame(
                 }
             }
 
-            // 3. Đếm số mìn xung quanh
             tempBoard = tempBoard.mapIndexed { r, row ->
                 row.mapIndexed { c, cell ->
                     if (!cell.isMine) {
@@ -72,24 +66,17 @@ data class MinesweeperGame(
         }
     }
 
-    // --- Logic hành động ---
-
     fun toggleFlag(r: Int, c: Int): MinesweeperGame {
         if (status != "Playing" || board[r][c].isRevealed) return this
-
         val newBoard = board.toMutableList().map { it.toMutableList() }
         val cell = newBoard[r][c]
         newBoard[r][c] = cell.copy(isFlagged = !cell.isFlagged)
-
         return copy(board = newBoard)
     }
 
     fun revealCell(r: Int, c: Int): MinesweeperGame {
         if (status != "Playing" || board[r][c].isRevealed || board[r][c].isFlagged) return this
-
         val cell = board[r][c]
-
-        // 1. GAME OVER: Người chơi mở trúng mìn
         if (cell.isMine) {
             val revealedBoard = board.toMutableList().map { row ->
                 row.map { c ->
@@ -98,31 +85,20 @@ data class MinesweeperGame(
             }
             return copy(board = revealedBoard, status = "Game Over 💥")
         }
-
-        // 2. Mở ô và Lan truyền (Flood Fill)
         val newBoard = revealEmptyCells(r, c, board.map { it.toMutableList() }.toMutableList())
-
-        // 3. Kiểm tra WIN
         val newRevealedCount = newBoard.flatten().count { it.isRevealed }
         if (newRevealedCount == (rows * cols) - totalMines) {
             return copy(board = newBoard, status = "You Win! 🎉")
         }
-
         return copy(board = newBoard)
     }
 
     private fun revealEmptyCells(r: Int, c: Int, currentBoard: MutableList<MutableList<MinesweeperCellState>>): List<List<MinesweeperCellState>> {
         if (r !in 0 until rows || c !in 0 until cols) return currentBoard
         val cell = currentBoard[r][c]
-
         if (cell.isRevealed || cell.isMine || cell.isFlagged) return currentBoard
-
         currentBoard[r][c] = cell.copy(isRevealed = true)
-
-        // Dừng lan truyền nếu ô có số mìn xung quanh > 0
         if (cell.minesAround > 0) return currentBoard
-
-        // Lan truyền (đệ quy)
         for (i in -1..1) {
             for (j in -1..1) {
                 if (i == 0 && j == 0) continue

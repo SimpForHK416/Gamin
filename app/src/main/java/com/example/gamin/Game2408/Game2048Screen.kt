@@ -1,6 +1,6 @@
 package com.example.gamin.game2408
 
-import android.app.Activity // THAY ĐỔI: Thêm import
+import android.app.Activity
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
@@ -18,7 +18,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.platform.LocalContext // THAY ĐỔI: Thêm import
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -28,9 +28,6 @@ import androidx.compose.ui.unit.times
 import com.example.gamin.snake.DirectionButtons
 import kotlinx.coroutines.delay
 
-// GIẢ ĐỊNH: Các hàm logic này tồn tại trong project của bạn
-// import com.example.gamin.game2408.logic.*
-
 @Composable
 fun Game2048Screen() {
     var state by remember { mutableStateOf(initialize2048Game()) }
@@ -38,27 +35,19 @@ fun Game2048Screen() {
     val minDragDistance = 50 * density
     var dragAccumulator by remember { mutableStateOf(Offset.Zero) }
     var moveTrigger by remember { mutableStateOf(false) }
-
-    // THAY ĐỔI: Lấy Activity context
     val activity = (LocalContext.current as? Activity)
 
-    // --- LOGIC TRÌ HOÃN ĐỂ THÊM Ô MỚI ---
     LaunchedEffect(moveTrigger) {
         if (moveTrigger) {
-            // Đợi animation di chuyển hoàn thành trước khi thêm ô mới
-            delay(200L) // Thời gian này nên khớp với animation di chuyển
+            delay(200L)
             state = addNewTile(state)
             moveTrigger = false
         }
     }
 
-    // --- (SỬA LỖI) HÀM XỬ LÝ DI CHUYỂN TRUNG TÂM ---
-// --- (SỬA LỖI) HÀM XỬ LÝ DI CHUYỂN TRUNG TÂM ---
     val handleMove = { direction: Direction ->
-        // Chỉ thực hiện di chuyển nếu game chưa kết thúc
         if (!state.isGameOver && !state.hasWon) {
             val newState = move(state, direction)
-            // Chỉ kích hoạt animation và thêm ô mới nếu bảng game có sự thay đổi
             if (newState != state) {
                 state = newState
                 moveTrigger = true
@@ -66,8 +55,6 @@ fun Game2048Screen() {
         }
     }
 
-
-    // --- Xử lý vuốt (Swipe) ---
     val swipeHandler = Modifier.pointerInput(Unit) {
         detectDragGestures(
             onDragStart = { dragAccumulator = Offset.Zero },
@@ -82,7 +69,7 @@ fun Game2048Screen() {
                         else -> null
                     }
                     if (direction != null) {
-                        handleMove(direction) // Sử dụng hàm xử lý trung tâm
+                        handleMove(direction)
                     }
                 }
                 dragAccumulator = Offset.Zero
@@ -102,33 +89,26 @@ fun Game2048Screen() {
     ) {
         Text("2048", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(8.dp))
-
-        // --- Điểm số ---
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween, // Sắp xếp 3 mục
+            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // THAY ĐỔI: Thêm nút Quay lại
             Button(
                 onClick = { activity?.finish() },
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
             ) {
                 Text("Quay lại")
             }
-
             Text("Score: ${state.score}", style = MaterialTheme.typography.titleMedium)
-
             Button(onClick = {
                 state = initialize2048Game()
-                moveTrigger = false // Reset trigger khi bắt đầu game mới
+                moveTrigger = false
             }) {
                 Text("New Game")
             }
         }
         Spacer(Modifier.height(16.dp))
-
-        // --- Bảng Game (Board) với Animation ---
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -139,20 +119,13 @@ fun Game2048Screen() {
         ) {
             Game2048AnimatedBoard(state = state)
         }
-
         Spacer(Modifier.height(24.dp))
-
-        // --- Trạng thái Game Over/Win ---
         if (state.isGameOver) {
             Text("GAME OVER!", color = Color.Red, fontSize = 32.sp, fontWeight = FontWeight.ExtraBold)
         } else if (state.hasWon) {
             Text("YOU WIN! 🎉", color = Color(0xFF4CAF50), fontSize = 32.sp, fontWeight = FontWeight.ExtraBold)
         }
-
         Spacer(Modifier.height(16.dp))
-
-        // --- (SỬA LỖI) Nút điều khiển ---
-        // Sử dụng hàm handleMove để đảm bảo logic được thực thi đúng
         DirectionButtons(
             onUp = { handleMove(Direction.UP) },
             onDown = { handleMove(Direction.DOWN) },
@@ -170,16 +143,13 @@ fun Game2048AnimatedBoard(state: Game2048State) {
 
     val singleCellSize: Dp = remember(actualBoxWidth) {
         if (actualBoxWidth == 0) return@remember 0.dp
-
         val totalWidthDp = with(density) { actualBoxWidth.toDp() }
         val totalSpacing = spacing * (state.size - 1)
-
         (totalWidthDp - totalSpacing) / state.size
     }
 
     val cellAndSpacing = singleCellSize + spacing
 
-    // Vẽ các ô nền trống
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -194,7 +164,7 @@ fun Game2048AnimatedBoard(state: Game2048State) {
                     .fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(spacing)
             ) {
-                repeat(state.size) { c ->
+                repeat(state.size) {
                     Box(
                         modifier = Modifier
                             .size(singleCellSize)
@@ -206,15 +176,11 @@ fun Game2048AnimatedBoard(state: Game2048State) {
         }
     }
 
-    // Vẽ các ô số (có hoạt ảnh)
     if (actualBoxWidth > 0) {
         state.tiles.forEach { tile ->
             val targetOffsetX = tile.col * cellAndSpacing
             val targetOffsetY = tile.row * cellAndSpacing
-
-            // --- (SỬA LỖI ANIMATION) Chuyển từ `spring` sang `tween` để chuyển động mượt hơn ---
             val animationSpec: AnimationSpec<Dp> = tween(durationMillis = 150, easing = EaseOut)
-
             val animatedOffsetX by animateDpAsState(
                 targetValue = targetOffsetX,
                 animationSpec = animationSpec,
@@ -225,7 +191,6 @@ fun Game2048AnimatedBoard(state: Game2048State) {
                 animationSpec = animationSpec,
                 label = "TileY"
             )
-
             TileView(
                 tile = tile,
                 modifier = Modifier
@@ -240,10 +205,7 @@ fun Game2048AnimatedBoard(state: Game2048State) {
 fun TileView(tile: Tile, modifier: Modifier) {
     val (color, textColor) = tileColors(tile.value)
     val text = if (tile.value == 0) "" else tile.value.toString()
-
-    // Hoạt ảnh xuất hiện của ô mới
     val animatedScale = remember { Animatable(if (tile.isNew) 0f else 1f) }
-
     LaunchedEffect(tile.id) {
         if (tile.isNew) {
             animatedScale.animateTo(
@@ -255,7 +217,6 @@ fun TileView(tile: Tile, modifier: Modifier) {
             )
         }
     }
-
     Box(
         modifier = modifier
             .background(color, RoundedCornerShape(4.dp))
@@ -271,7 +232,6 @@ fun TileView(tile: Tile, modifier: Modifier) {
     }
 }
 
-// Hàm cung cấp màu sắc cho các ô số (Giữ nguyên)
 fun tileColors(value: Int): Pair<Color, Color> {
     val bg = when (value) {
         0 -> Color(0xFFCDC1B4)
@@ -291,4 +251,3 @@ fun tileColors(value: Int): Pair<Color, Color> {
     val text = if (value < 8 && value != 0) Color(0xFF776E65) else Color.White
     return Pair(bg, text)
 }
-

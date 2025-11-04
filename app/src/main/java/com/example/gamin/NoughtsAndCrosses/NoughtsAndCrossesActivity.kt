@@ -22,7 +22,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.gamin.R
 import com.example.gamin.ui.theme.GaminTheme
-// THÊM: Import Coroutines
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -46,10 +45,7 @@ fun NoughtsAndCrossesGame(mode: String, onBack: () -> Unit) {
     var currentPlayer by remember { mutableStateOf("X") }
     var gameOver by remember { mutableStateOf(false) }
     var winner by remember { mutableStateOf<String?>(null) }
-
-    // THÊM: Coroutine Scope
     val scope = rememberCoroutineScope()
-
     val isPvE = mode == "PVE"
 
     fun resetGame() {
@@ -59,12 +55,10 @@ fun NoughtsAndCrossesGame(mode: String, onBack: () -> Unit) {
         winner = null
     }
 
-    // HÀM MỚI: Dùng để cập nhật trạng thái game sau nước đi của AI
     fun updateBoardAfterAIMove(moveIndex: Int) {
         val aiBoard = board.toMutableList()
         aiBoard[moveIndex] = "O"
         board = aiBoard
-
         val aiWinner = MinimaxAI.checkWinner(board)
         if (aiWinner != null) {
             gameOver = true
@@ -77,31 +71,24 @@ fun NoughtsAndCrossesGame(mode: String, onBack: () -> Unit) {
         }
     }
 
-    // THÊM: Xử lý nước đi của AI bằng LaunchedEffect
     LaunchedEffect(currentPlayer, gameOver) {
         if (isPvE && currentPlayer == "O" && !gameOver) {
-            // Chạy Minimax trên luồng nền (Default) để không làm treo UI
             val aiMove = withContext(Dispatchers.Default) {
                 MinimaxAI.findBestMove(board)
             }
-
             aiMove?.let { moveIndex ->
-                // Quay lại luồng chính (Main) để cập nhật UI
                 updateBoardAfterAIMove(moveIndex)
             }
         }
     }
 
     fun makeMove(index: Int) {
-        // SỬA: Chỉ cho phép người chơi (X) di chuyển nếu không phải lượt AI (O)
         if (board[index].isEmpty() && !gameOver &&
-            (currentPlayer == "X" || !isPvE) // Cho phép cả X và O đi trong PVP
+            (currentPlayer == "X" || !isPvE)
         ) {
             val newBoard = board.toMutableList()
             newBoard[index] = currentPlayer
             board = newBoard
-
-            // Kiểm tra người thắng
             val gameWinner = MinimaxAI.checkWinner(board)
             if (gameWinner != null) {
                 gameOver = true
@@ -110,7 +97,6 @@ fun NoughtsAndCrossesGame(mode: String, onBack: () -> Unit) {
                 gameOver = true
                 winner = "Draw"
             } else {
-                // Chuyển lượt. LaunchedEffect sẽ gọi AI nếu là PVE và lượt là 'O'
                 currentPlayer = if (currentPlayer == "X") "O" else "X"
             }
         }
@@ -157,7 +143,6 @@ fun NoughtsAndCrossesGame(mode: String, onBack: () -> Unit) {
             )
         } else {
             Text(
-                // THAY ĐỔI: Sử dụng "AI Thinking..." để báo hiệu AI đang tính toán
                 text = if (isPvE && currentPlayer == "O") "AI Thinking..."
                 else "Current Player: $currentPlayer",
                 style = MaterialTheme.typography.titleMedium,
@@ -167,7 +152,6 @@ fun NoughtsAndCrossesGame(mode: String, onBack: () -> Unit) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Game Board - 5x5
         LazyVerticalGrid(
             columns = GridCells.Fixed(5),
             modifier = Modifier
@@ -183,7 +167,6 @@ fun NoughtsAndCrossesGame(mode: String, onBack: () -> Unit) {
                         .aspectRatio(1f)
                         .background(Color.White)
                         .clickable(
-                            // SỬA ĐIỀU KIỆN: Chỉ cho phép click nếu không phải lượt AI (O) trong chế độ PVE
                             enabled = !gameOver &&
                                     (currentPlayer == "X" || !isPvE) &&
                                     cell.isEmpty()

@@ -40,13 +40,14 @@
             android:exported="false"
             android:label="Memory Card" />
 
-        <!-- ============================================= -->
-        <!-- THÊM MỚI GAME PONG -->
+        <activity android:name=".Arkanoid.ArkanoidActivity"
+            android:exported="false"
+            android:label="Arkanoid" />
+
         <activity android:name=".Pong.PongActivity"
             android:exported="false"
             android:label="Pong"
-            android:screenOrientation="landscape" /> <!-- Pong nên chơi ở chế độ ngang -->
-        <!-- ============================================= -->
+            android:screenOrientation="landscape" />
         <activity
             android:name=".tetris.TetrisActivity"
             android:exported="false"

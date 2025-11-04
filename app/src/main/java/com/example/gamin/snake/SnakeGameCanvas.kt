@@ -39,7 +39,6 @@ fun SnakeGameCanvas(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.fillMaxWidth()
     ) {
-        // 🟩 Canvas game
         Canvas(
             modifier = Modifier
                 .fillMaxWidth()
@@ -48,14 +47,12 @@ fun SnakeGameCanvas(
         ) {
             val cellPx = size.width / gridSize
 
-            // 🍎 Vẽ mồi
             drawRect(
                 color = Color.Red,
                 topLeft = Offset(food.x * cellPx, food.y * cellPx),
                 size = androidx.compose.ui.geometry.Size(cellPx, cellPx)
             )
 
-            // 🐍 Vẽ rắn
             snake.forEachIndexed { index, p ->
                 drawRect(
                     color = if (index == 0) Color.Green else Color(0xFF4CAF50),
@@ -67,7 +64,6 @@ fun SnakeGameCanvas(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // 🕹️ Bảng điều khiển hướng
         DirectionButtons(
             onUp = {
                 if (direction != Direction.DOWN) direction = Direction.UP
@@ -84,7 +80,6 @@ fun SnakeGameCanvas(
         )
     }
 
-    // ⚡ Vòng lặp game
     LaunchedEffect(isPlaying) {
         while (isPlaying) {
             delay(150)
@@ -96,7 +91,6 @@ fun SnakeGameCanvas(
                 Direction.RIGHT -> Point(head.x + 1, head.y)
             }
 
-            // Va chạm
             if (newHead.x !in 0 until gridSize ||
                 newHead.y !in 0 until gridSize ||
                 newHead in snake

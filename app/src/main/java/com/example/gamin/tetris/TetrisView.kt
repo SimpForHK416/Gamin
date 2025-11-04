@@ -18,7 +18,6 @@ class TetrisView(context: Context, private val difficulty: String) : SurfaceView
     private var currentBlock = TetrisBlock.randomBlock()
     private var score = 0
 
-    // --- Trạng thái game và Tốc độ ---
     private var isGameOver = false
     private var initialFallDelay = 500L
     private var maxFallDelay = 100L
@@ -28,7 +27,6 @@ class TetrisView(context: Context, private val difficulty: String) : SurfaceView
     private val NEXT_BLOCK_COUNT = 3
     private var nextBlocks = mutableListOf<TetrisBlock>()
 
-    // --- Biến layout ---
     private var cellSize = 0
     private var offsetX = 0
     private var offsetY = 0
@@ -39,24 +37,20 @@ class TetrisView(context: Context, private val difficulty: String) : SurfaceView
     private var topAreaHeight = 0
     private var bottomAreaHeight = 0
 
-    // --- Rects cho các nút ---
     private var leftButtonRect = RectF()
     private var rightButtonRect = RectF()
     private var playAgainButtonRect = RectF()
     private var backButtonRect = RectF()
 
-    // --- Biến cảm ứng ---
     private var startX = 0f
     private var startY = 0f
     private val SWIPE_HORIZONTAL_THRESHOLD = 150f
     private val SWIPE_VERTICAL_THRESHOLD = 300f
     private val TAP_THRESHOLD = 50f
-    private var buttonPressed = false // Cờ (flag) sửa lỗi xoay
+    private var buttonPressed = false
 
-    // <-- SỬA LỖI: Thêm một đối tượng "khóa" (Lock) -->
     private val gameStateLock = Any()
 
-    // --- Paints ---
     private val paintPanel = Paint().apply {
         color = Color.BLACK
         alpha = 30
@@ -70,7 +64,7 @@ class TetrisView(context: Context, private val difficulty: String) : SurfaceView
     }
     private val paintGhost = Paint().apply {
         style = Paint.Style.FILL
-        alpha = 15 // Trong suốt
+        alpha = 15
         isAntiAlias = true
     }
     private val paintText = Paint().apply {
@@ -135,7 +129,6 @@ class TetrisView(context: Context, private val difficulty: String) : SurfaceView
 
     override fun surfaceCreated(holder: SurfaceHolder) {
         threadRunning = true
-        // <-- SỬA LỖI: Khởi động game phải được "khóa" -->
         synchronized(gameStateLock) {
             startGame()
         }
@@ -148,8 +141,6 @@ class TetrisView(context: Context, private val difficulty: String) : SurfaceView
     override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {}
 
     private fun startGame() {
-        // Hàm này giờ CHỈ thay đổi biến, không cần "khóa" bên trong
-        // vì nó đã được gọi từ bên trong một "khóa" (ở surfaceCreated hoặc onTouchEvent)
         isGameOver = false
         grid = Array(gridHeight) { IntArray(gridWidth) }
         score = 0
@@ -182,16 +173,14 @@ class TetrisView(context: Context, private val difficulty: String) : SurfaceView
 
         lastFallTime = System.currentTimeMillis()
 
-        if (threadRunning && !isGameOver) { // Chỉ chạy game loop nếu game chưa over
+        if (threadRunning && !isGameOver) {
             gameLoop()
         }
     }
 
-    // <-- SỬA LỖI: Toàn bộ vòng lặp logic và vẽ phải được "khóa" -->
     private fun gameLoop() {
         thread {
             while (threadRunning) {
-                // Khóa trạng thái game trước khi cập nhật hoặc vẽ
                 synchronized(gameStateLock) {
                     if (!isGameOver) {
                         val now = System.currentTimeMillis()
@@ -200,12 +189,8 @@ class TetrisView(context: Context, private val difficulty: String) : SurfaceView
                             lastFallTime = now
                         }
                     }
-
-                    // Vẽ trạng thái game (đã được khóa)
                     drawGame()
-                } // Mở khóa
-
-                // Ngủ bên ngoài "khóa"
+                }
                 Thread.sleep(30)
             }
         }
@@ -228,18 +213,10 @@ class TetrisView(context: Context, private val difficulty: String) : SurfaceView
         canvas.drawRect(px, py + border, px + border, py + size, blockLightBorderPaint)
         canvas.drawRect(px, py + size - border, px + size, py + size, blockDarkBorderPaint)
         canvas.drawRect(px + size - border, py, px + size, py + size - border, blockDarkBorderPaint)
-        canvas.drawRect(
-            px + border,
-            py + border,
-            px + size - border,
-            py + size - border,
-            blockPaint
-        )
+        canvas.drawRect(px + border, py + border, px + size - border, py + size - border, blockPaint)
     }
 
-
     private fun drawGame() {
-        // Hàm này chỉ được gọi từ bên trong "khóa", nên an toàn
         val canvas = holder.lockCanvas() ?: return
         try {
             canvas.drawColor(Color.parseColor("#222233"))
@@ -258,23 +235,15 @@ class TetrisView(context: Context, private val difficulty: String) : SurfaceView
                 offsetY = topAreaHeight + PADDING
             }
 
-            // --- Vẽ Khu Vực Game ---
             for (y in grid.indices) {
                 for (x in grid[0].indices) {
                     if (grid[y][x] != 0) {
-                        drawCell(
-                            canvas,
-                            (offsetX + x * cellSize).toFloat(),
-                            (offsetY + y * cellSize).toFloat(),
-                            cellSize.toFloat(),
-                            grid[y][x]
-                        )
+                        drawCell(canvas, (offsetX + x * cellSize).toFloat(), (offsetY + y * cellSize).toFloat(), cellSize.toFloat(), grid[y][x])
                     }
                 }
             }
 
             if (!isGameOver) {
-                // Vẽ Bóng mờ
                 val ghostBlock = currentBlock.copy()
                 while (!collides(ghostBlock, 0, 1)) { ghostBlock.y++ }
                 paintGhost.color = currentBlock.color
@@ -296,43 +265,26 @@ class TetrisView(context: Context, private val difficulty: String) : SurfaceView
                     }
                 }
 
-                // Vẽ khối đang rơi
                 for (i in currentBlock.shape.indices) {
                     for (j in currentBlock.shape[0].indices) {
                         if (currentBlock.shape[i][j] == 1) {
                             val px = currentBlock.x + j
                             val py = currentBlock.y + i
                             if (py >= 0) {
-                                drawCell(
-                                    canvas,
-                                    (offsetX + px * cellSize).toFloat(),
-                                    (offsetY + py * cellSize).toFloat(),
-                                    cellSize.toFloat(),
-                                    currentBlock.color
-                                )
+                                drawCell(canvas, (offsetX + px * cellSize).toFloat(), (offsetY + py * cellSize).toFloat(), cellSize.toFloat(), currentBlock.color)
                             }
                         }
                     }
                 }
             }
 
-            // Vẽ Lưới mờ
             for (i in 0..gridHeight) {
-                canvas.drawLine(
-                    offsetX.toFloat(), (offsetY + i * cellSize).toFloat(),
-                    (offsetX + gridWidth * cellSize).toFloat(), (offsetY + i * cellSize).toFloat(),
-                    paintGrid
-                )
+                canvas.drawLine(offsetX.toFloat(), (offsetY + i * cellSize).toFloat(), (offsetX + gridWidth * cellSize).toFloat(), (offsetY + i * cellSize).toFloat(), paintGrid)
             }
             for (j in 0..gridWidth) {
-                canvas.drawLine(
-                    (offsetX + j * cellSize).toFloat(), offsetY.toFloat(),
-                    (offsetX + j * cellSize).toFloat(), (offsetY + gridHeight * cellSize).toFloat(),
-                    paintGrid
-                )
+                canvas.drawLine((offsetX + j * cellSize).toFloat(), offsetY.toFloat(), (offsetX + j * cellSize).toFloat(), (offsetY + gridHeight * cellSize).toFloat(), paintGrid)
             }
 
-            // --- Vẽ Panel Thông Tin (Bên Phải) ---
             val panelX = (offsetX + gameAreaWidth + PADDING).toFloat()
             val panelRight = width - PADDING.toFloat()
             val gridBottom = (offsetY + gridHeight * cellSize).toFloat()
@@ -356,45 +308,20 @@ class TetrisView(context: Context, private val difficulty: String) : SurfaceView
                 for (i in block.shape.indices) {
                     for (j in block.shape[0].indices) {
                         if (block.shape[i][j] == 1) {
-                            drawCell(
-                                canvas,
-                                blockStartX + (j * nextCellSize),
-                                currentY + (i * nextCellSize),
-                                nextCellSize,
-                                block.color
-                            )
+                            drawCell(canvas, blockStartX + (j * nextCellSize), currentY + (i * nextCellSize), nextCellSize, block.color)
                         }
                     }
                 }
                 currentY += blockHeight + 30f
             }
 
-
-            // --- Vẽ các nút điều khiển ---
-
-            // 1. Vẽ nút "Menu"
             val backButtonSize = topAreaHeight * 0.8f
-            backButtonRect = RectF(
-                offsetX.toFloat(),
-                PADDING.toFloat(),
-                offsetX.toFloat() + backButtonSize + (PADDING * 2),
-                PADDING.toFloat() + backButtonSize
-            )
-            val backButtonPaint = Paint(paintButtonBg).apply {
-                color = Color.parseColor("#808080")
-            }
-            val backButtonTextPaint = Paint(paintButtonText).apply {
-                textSize = 48f
-            }
+            backButtonRect = RectF(offsetX.toFloat(), PADDING.toFloat(), offsetX.toFloat() + backButtonSize + (PADDING * 2), PADDING.toFloat() + backButtonSize)
+            val backButtonPaint = Paint(paintButtonBg).apply { color = Color.parseColor("#808080") }
+            val backButtonTextPaint = Paint(paintButtonText).apply { textSize = 48f }
             canvas.drawRoundRect(backButtonRect, 15f, 15f, backButtonPaint)
-            canvas.drawText(
-                "Menu",
-                backButtonRect.centerX(),
-                backButtonRect.centerY() + backButtonTextPaint.textSize / 3,
-                backButtonTextPaint
-            )
+            canvas.drawText("Menu", backButtonRect.centerX(), backButtonRect.centerY() + backButtonTextPaint.textSize / 3, backButtonTextPaint)
 
-            // 2. Vẽ nút Trái/Phải (Ra giữa, khoảng cách nhỏ)
             val bottomAreaTop = gridBottom + PADDING
             val buttonWidth = (gameAreaWidth * 0.48f)
             val buttonGap = (gameAreaWidth * 0.04f)
@@ -402,61 +329,24 @@ class TetrisView(context: Context, private val difficulty: String) : SurfaceView
             val totalButtonWidth = (buttonWidth * 2) + buttonGap
             val startXButtons = offsetX.toFloat() + (gameAreaWidth - totalButtonWidth) / 2f
 
-            leftButtonRect = RectF(
-                startXButtons,
-                bottomAreaTop,
-                startXButtons + buttonWidth,
-                bottomAreaTop + buttonHeight
-            )
-            rightButtonRect = RectF(
-                startXButtons + buttonWidth + buttonGap,
-                bottomAreaTop,
-                startXButtons + buttonWidth * 2 + buttonGap,
-                bottomAreaTop + buttonHeight
-            )
+            leftButtonRect = RectF(startXButtons, bottomAreaTop, startXButtons + buttonWidth, bottomAreaTop + buttonHeight)
+            rightButtonRect = RectF(startXButtons + buttonWidth + buttonGap, bottomAreaTop, startXButtons + buttonWidth * 2 + buttonGap, bottomAreaTop + buttonHeight)
             canvas.drawRoundRect(leftButtonRect, 25f, 25f, paintButtonBg)
             canvas.drawRoundRect(rightButtonRect, 25f, 25f, paintButtonBg)
-            canvas.drawText(
-                "<",
-                leftButtonRect.centerX(),
-                leftButtonRect.centerY() + paintButtonText.textSize / 3,
-                paintButtonText
-            )
-            canvas.drawText(
-                ">",
-                rightButtonRect.centerX(),
-                rightButtonRect.centerY() + paintButtonText.textSize / 3,
-                paintButtonText
-            )
+            canvas.drawText("<", leftButtonRect.centerX(), leftButtonRect.centerY() + paintButtonText.textSize / 3, paintButtonText)
+            canvas.drawText(">", rightButtonRect.centerX(), rightButtonRect.centerY() + paintButtonText.textSize / 3, paintButtonText)
 
-            // 3. Vẽ nút "Chơi Lại"
             if (isGameOver) {
-                playAgainButtonRect = RectF(
-                    panelX,
-                    PADDING.toFloat(),
-                    panelRight,
-                    PADDING + topAreaHeight * 0.8f
-                )
-                val playAgainPaint = Paint(paintButtonBg).apply {
-                    color = Color.parseColor("#FFC107")
-                }
-                val playAgainTextPaint = Paint(paintButtonText).apply {
-                    color = Color.BLACK
-                    textSize = 48f
-                }
+                playAgainButtonRect = RectF(panelX, PADDING.toFloat(), panelRight, PADDING + topAreaHeight * 0.8f)
+                val playAgainPaint = Paint(paintButtonBg).apply { color = Color.parseColor("#FFC107") }
+                val playAgainTextPaint = Paint(paintButtonText).apply { color = Color.BLACK; textSize = 48f }
                 canvas.drawRoundRect(playAgainButtonRect, 20f, 20f, playAgainPaint)
-                canvas.drawText(
-                    "Chơi Lại",
-                    playAgainButtonRect.centerX(),
-                    playAgainButtonRect.centerY() + playAgainTextPaint.textSize / 3,
-                    playAgainTextPaint
-                )
+                canvas.drawText("Chơi Lại", playAgainButtonRect.centerX(), playAgainButtonRect.centerY() + playAgainTextPaint.textSize / 3, playAgainTextPaint)
             }
         } finally {
             holder.unlockCanvasAndPost(canvas)
         }
     }
-
 
     private fun moveDown() {
         if (!collides(currentBlock, 0, 1)) {
@@ -470,22 +360,19 @@ class TetrisView(context: Context, private val difficulty: String) : SurfaceView
 
     private fun moveLeft() {
         if (isGameOver) return
-        if (!collides(currentBlock, -1, 0))
-            currentBlock.x--
+        if (!collides(currentBlock, -1, 0)) currentBlock.x--
     }
 
     private fun moveRight() {
         if (isGameOver) return
-        if (!collides(currentBlock, 1, 0))
-            currentBlock.x++
+        if (!collides(currentBlock, 1, 0)) currentBlock.x++
     }
 
     private fun rotate() {
         if (isGameOver) return
         val temp = currentBlock.copy(shape = currentBlock.shape.map { it.clone() }.toTypedArray())
         temp.rotate()
-        if (!collides(temp, 0, 0))
-            currentBlock.rotate()
+        if (!collides(temp, 0, 0)) currentBlock.rotate()
     }
 
     private fun hardDrop() {
@@ -499,14 +386,12 @@ class TetrisView(context: Context, private val difficulty: String) : SurfaceView
         lastFallTime = System.currentTimeMillis()
     }
 
-
     private fun collides(block: TetrisBlock, dx: Int, dy: Int): Boolean {
         for (i in block.shape.indices) {
             for (j in block.shape[0].indices) {
                 if (block.shape[i][j] == 1) {
                     val x = block.x + j + dx
                     val correctedY = block.y + i + dy
-
                     if (x < 0 || x >= gridWidth || correctedY >= gridHeight) return true
                     if (correctedY >= 0 && grid[correctedY][x] != 0) return true
                 }
@@ -530,12 +415,10 @@ class TetrisView(context: Context, private val difficulty: String) : SurfaceView
     private fun clearLines() {
         val newGrid = grid.filter { row -> row.any { it == 0 } }.toMutableList()
         val linesCleared = gridHeight - newGrid.size
-
         if (linesCleared > 0) {
             repeat(linesCleared) { newGrid.add(0, IntArray(gridWidth)) }
             grid = newGrid.toTypedArray()
             score += linesCleared * 100 * linesCleared
-
             val level = score / 1000
             fallDelay = (initialFallDelay - (level * 50L)).coerceAtLeast(maxFallDelay)
         }
@@ -545,15 +428,12 @@ class TetrisView(context: Context, private val difficulty: String) : SurfaceView
         isGameOver = true
     }
 
-    // <-- SỬA LỖI: Toàn bộ onTouchEvent phải được "khóa" -->
     override fun onTouchEvent(event: MotionEvent): Boolean {
         when (event.action) {
             MotionEvent.ACTION_DOWN -> {
                 startX = event.x
                 startY = event.y
                 buttonPressed = false
-
-                // 1. Luôn kiểm tra nút "Menu" trước (không cần khóa)
                 if (backButtonRect.contains(event.x, event.y)) {
                     threadRunning = false
                     post {
@@ -564,12 +444,10 @@ class TetrisView(context: Context, private val difficulty: String) : SurfaceView
                     buttonPressed = true
                     return true
                 }
-
-                // 2. Khóa trạng thái game khi xử lý các nút bấm
                 synchronized(gameStateLock) {
                     if (isGameOver) {
                         if (playAgainButtonRect.contains(event.x, event.y)) {
-                            startGame() // startGame đã được khóa bên trong
+                            startGame()
                             buttonPressed = true
                             return true
                         }
@@ -585,33 +463,25 @@ class TetrisView(context: Context, private val difficulty: String) : SurfaceView
                             return true
                         }
                     }
-                } // Mở khóa
+                }
             }
 
             MotionEvent.ACTION_UP -> {
                 if (isGameOver) return true
-
-                // Nếu một nút đã được nhấn, bỏ qua sự kiện UP
                 if (buttonPressed) {
                     buttonPressed = false
                     return true
                 }
-
-                // Xử lý vuốt/chạm (phải "khóa")
                 val deltaX = event.x - startX
                 val deltaY = event.y - startY
-
-                // Chỉ xử lý nếu chạm vào lưới game
                 if (startX > offsetX && startX < (offsetX + gameAreaWidth)) {
-                    // Khóa trạng thái game
                     synchronized(gameStateLock) {
                         if (deltaY > SWIPE_VERTICAL_THRESHOLD && abs(deltaX) < SWIPE_HORIZONTAL_THRESHOLD) {
                             hardDrop()
-                        }
-                        else if (abs(deltaX) < TAP_THRESHOLD && abs(deltaY) < TAP_THRESHOLD) {
+                        } else if (abs(deltaX) < TAP_THRESHOLD && abs(deltaY) < TAP_THRESHOLD) {
                             rotate()
                         }
-                    } // Mở khóa
+                    }
                 }
             }
         }
@@ -625,13 +495,6 @@ class TetrisView(context: Context, private val difficulty: String) : SurfaceView
     fun resume() {
         if (!threadRunning) {
             threadRunning = true
-            // Không cần gọi gameLoop() ở đây vì surfaceCreated sẽ xử lý
-            // Hoặc nếu resume từ pause, chúng ta cần một logic phức tạp hơn.
-            // Để đơn giản, chúng ta giả định gameLoop sẽ được khởi động lại
-            // một cách an toàn khi view được tạo.
-            // Nếu gameLoop() bị dừng, chúng ta khởi động lại.
-
-            // Sửa lại: Khởi động lại game loop nếu nó chưa chạy
             gameLoop()
         }
     }

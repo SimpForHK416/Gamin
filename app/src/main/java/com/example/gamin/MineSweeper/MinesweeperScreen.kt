@@ -1,7 +1,7 @@
 package com.example.gamin.MineSweeper
 
 import android.annotation.SuppressLint
-import android.app.Activity // THÊM MỚI
+import android.app.Activity
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -12,7 +12,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext // THÊM MỚI
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
@@ -20,12 +20,7 @@ import androidx.compose.ui.unit.sp
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MinesweeperScreen() {
-    // Khởi tạo trạng thái game. Kích thước 8x8, 10 quả mìn.
-    var game by remember {
-        mutableStateOf(MinesweeperGame(rows = 8, cols = 8, totalMines = 10))
-    }
-
-    // THÊM MỚI: Lấy context activity
+    var game by remember { mutableStateOf(MinesweeperGame(rows = 8, cols = 8, totalMines = 10)) }
     val activity = (LocalContext.current as? Activity)
 
     Column(
@@ -34,13 +29,11 @@ fun MinesweeperScreen() {
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // --- Header và Status ---
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // THÊM MỚI: Nút Quay lại
             Button(
                 onClick = { activity?.finish() },
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
@@ -50,8 +43,6 @@ fun MinesweeperScreen() {
 
             Text("Mines: ${game.minesLeft}", style = MaterialTheme.typography.titleMedium)
 
-            // XÓA: Text(game.status, style = MaterialTheme.typography.titleLarge)
-
             Button(onClick = { game = MinesweeperGame(8, 8, 10) }) {
                 Text("Reset")
             }
@@ -59,7 +50,6 @@ fun MinesweeperScreen() {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // --- Game Grid ---
         LazyVerticalGrid(
             columns = GridCells.Fixed(game.cols),
             modifier = Modifier
@@ -76,11 +66,9 @@ fun MinesweeperScreen() {
                         .padding(1.dp)
                         .combinedClickable(
                             enabled = game.status == "Playing",
-                            // Click thường: Mở ô
                             onClick = {
                                 game = game.revealCell(index / game.cols, index % game.cols)
                             },
-                            // Long Click: Cắm/Gỡ cờ
                             onLongClick = {
                                 game = game.toggleFlag(index / game.cols, index % game.cols)
                             }
@@ -89,7 +77,6 @@ fun MinesweeperScreen() {
             }
         }
 
-        // THÊM MỚI: Hiển thị status ở dưới
         Spacer(modifier = Modifier.height(16.dp))
         Text(game.status, style = MaterialTheme.typography.titleLarge)
     }
@@ -98,9 +85,9 @@ fun MinesweeperScreen() {
 @Composable
 fun MinesweeperCell(cell: MinesweeperCellState, modifier: Modifier) {
     val backgroundColor = when {
-        cell.isRevealed -> Color(0xFFC0C0C0) // Màu xám nhạt khi đã mở
-        cell.isFlagged -> Color(0xFFFFCC80) // Màu cam nhạt khi cắm cờ
-        else -> Color(0xFFE0E0E0) // Màu xám trắng khi chưa mở
+        cell.isRevealed -> Color(0xFFC0C0C0)
+        cell.isFlagged -> Color(0xFFFFCC80)
+        else -> Color(0xFFE0E0E0)
     }
 
     val textColor = when (cell.minesAround) {
@@ -123,7 +110,6 @@ fun MinesweeperCell(cell: MinesweeperCellState, modifier: Modifier) {
                     color = textColor,
                     fontSize = 16.sp
                 )
-                // Ô trống thì không hiển thị gì
             }
         } else if (cell.isFlagged) {
             Text("🚩", fontSize = 18.sp)

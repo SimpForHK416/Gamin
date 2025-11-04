@@ -24,28 +24,23 @@ import androidx.compose.ui.unit.dp
 import com.example.gamin.R
 import kotlinx.coroutines.delay
 
-private const val HIDE_DELAY_MS = 1000L // 1 giây
+private const val HIDE_DELAY_MS = 1000L
 
-// --- TRẠNG THÁI MÀN HÌNH CHÍNH ---
 private sealed class GameScreenState {
-    object DifficultySelect : GameScreenState() // Màn hình chọn độ khó
-    data class Playing(val rows: Int, val cols: Int) : GameScreenState() // Màn hình chơi
+    object DifficultySelect : GameScreenState()
+    data class Playing(val rows: Int, val cols: Int) : GameScreenState()
 }
 
-// --- COMPOSABLE GỐC (ĐIỀU HƯỚNG) ---
 @Composable
 fun MemoryCardGameRoot() {
-    // State quản lý màn hình hiện tại
     var screenState by remember {
         mutableStateOf<GameScreenState>(GameScreenState.DifficultySelect)
     }
 
-    // Dùng when để điều hướng giữa các màn hình
     when (val state = screenState) {
         is GameScreenState.DifficultySelect -> {
             DifficultySelectionScreen(
                 onDifficultySelected = { rows, cols ->
-                    // Chuyển sang màn hình chơi
                     screenState = GameScreenState.Playing(rows, cols)
                 }
             )
@@ -55,7 +50,6 @@ fun MemoryCardGameRoot() {
                 rows = state.rows,
                 cols = state.cols,
                 onNavigateBackToSelect = {
-                    // Quay lại màn hình chọn độ khó
                     screenState = GameScreenState.DifficultySelect
                 }
             )
@@ -63,11 +57,9 @@ fun MemoryCardGameRoot() {
     }
 }
 
-// --- MÀN HÌNH 1: CHỌN ĐỘ KHÓ ---
 @SuppressLint("ContextCastToActivity")
 @Composable
 fun DifficultySelectionScreen(onDifficultySelected: (Int, Int) -> Unit) {
-    // Lấy activity context
     val activity = (LocalContext.current as? Activity)
 
     Column(
@@ -103,7 +95,6 @@ fun DifficultySelectionScreen(onDifficultySelected: (Int, Int) -> Unit) {
             Text("Khó (5x6)")
         }
 
-        // Thêm nút Quay lại Menu chính
         Spacer(modifier = Modifier.height(64.dp))
         OutlinedButton(
             onClick = { activity?.finish() },
@@ -114,22 +105,17 @@ fun DifficultySelectionScreen(onDifficultySelected: (Int, Int) -> Unit) {
     }
 }
 
-// --- MÀN HÌNH 2: CHƠI GAME ---
 @Composable
 fun GameGridScreen(
     rows: Int,
     cols: Int,
-    onNavigateBackToSelect: () -> Unit // Lambda để quay lại
+    onNavigateBackToSelect: () -> Unit
 ) {
-    // State 'resetTrigger' để khởi tạo lại game khi "Chơi lại"
     var resetTrigger by remember { mutableIntStateOf(0) }
-
-    // Khởi tạo game, sẽ chạy lại khi (rows, cols, resetTrigger) thay đổi
     var game by remember(rows, cols, resetTrigger) {
         mutableStateOf(MemoryGame(rows = rows, cols = cols))
     }
 
-    // Logic tự động lật úp (không đổi)
     LaunchedEffect(game.currentlyFlippedIndices) {
         if (game.currentlyFlippedIndices.size == 2) {
             delay(HIDE_DELAY_MS)
@@ -137,47 +123,37 @@ fun GameGridScreen(
         }
     }
 
-    // --- POP-UP CHIẾN THẮNG (ĐÃ CẬP NHẬT LOGIC NÚT) ---
     if (game.status == "You Win! 🎉") {
         AlertDialog(
-            onDismissRequest = { /* Không cho tắt */ },
+            onDismissRequest = {},
             title = { Text("Chúc mừng!") },
             text = { Text("Bạn đã thắng với ${game.moves} bước đi!") },
             confirmButton = {
-                Button(onClick = {
-                    // "Chơi lại": Chỉ cần trigger để reset lại game
-                    resetTrigger++
-                }) {
+                Button(onClick = { resetTrigger++ }) {
                     Text("Chơi lại")
                 }
             },
             dismissButton = {
-                Button(onClick = {
-                    // "Chuyển độ khó": Gọi lambda để quay về
-                    onNavigateBackToSelect()
-                }) {
+                Button(onClick = { onNavigateBackToSelect() }) {
                     Text("Chuyển độ khó")
                 }
             }
         )
     }
 
-    // --- Giao diện (Column, Header, Grid) ---
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Header (Moves, Status, Nút Reset)
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Thêm nút "Quay lại"
             Button(
-                onClick = onNavigateBackToSelect, // Gọi lambda để quay về
+                onClick = onNavigateBackToSelect,
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
             ) {
                 Text("Quay lại")
@@ -196,7 +172,6 @@ fun GameGridScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Game Grid
         LazyVerticalGrid(
             columns = GridCells.Fixed(game.cols),
             modifier = Modifier
@@ -218,7 +193,6 @@ fun GameGridScreen(
     }
 }
 
-// --- COMPOSABLE THẺ BÀI (Không đổi) ---
 @Composable
 fun MemoryCard(card: CardState, onClick: () -> Unit) {
     val rotation by animateFloatAsState(
@@ -271,10 +245,8 @@ fun MemoryCard(card: CardState, onClick: () -> Unit) {
     }
 }
 
-// --- HÀM LẤY ẢNH (Không đổi) ---
 @Composable
 private fun getImageResForContentId(contentId: Int): Int {
-    // % 15 cặp (cho mức 5x6)
     return when (contentId % 15) {
         1 -> R.drawable.mem_icon_1
         2 -> R.drawable.mem_icon_2
@@ -290,8 +262,7 @@ private fun getImageResForContentId(contentId: Int): Int {
         12 -> R.drawable.mem_icon_12
         13 -> R.drawable.mem_icon_13
         14 -> R.drawable.mem_icon_14
-        0 -> R.drawable.mem_icon_15 // contentId bắt đầu từ 1, nên cặp 15 sẽ là 0
-        else -> R.drawable.ic_card_back // Trường hợp dự phòng
+        0 -> R.drawable.mem_icon_15
+        else -> R.drawable.ic_card_back
     }
 }
-
