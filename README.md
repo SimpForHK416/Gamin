@@ -26,6 +26,9 @@ Sliding Puzzle ([15 Puzzle](https://en.wikipedia.org/wiki/15_puzzle))
 
 tetris (done)
 
+Bubble shooter clone (done)
+
+Whack a mole (done)
 
 Upcoming feature:
 

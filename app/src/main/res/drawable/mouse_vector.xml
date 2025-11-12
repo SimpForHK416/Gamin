@@ -1,0 +1,45 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="64dp"
+    android:height="64dp"
+    android:viewportWidth="64"
+    android:viewportHeight="64">
+    
+    <!-- Mouse body -->
+    <path
+        android:fillColor="#8B4513"
+        android:pathData="M32,16C24,16 18,22 18,30L18,42C18,50 24,56 32,56C40,56 46,50 46,42L46,30C46,22 40,16 32,16Z"/>
+    
+    <!-- Mouse ears -->
+    <path
+        android:fillColor="#8B4513"
+        android:pathData="M22,18 Q26,12 30,18 Q26,24 22,18 Z"/>
+    <path
+        android:fillColor="#8B4513"
+        android:pathData="M34,18 Q38,12 42,18 Q38,24 34,18 Z"/>
+    
+    <!-- Inner ears -->
+    <path
+        android:fillColor="#FFB6C1"
+        android:pathData="M24,18 Q26,15 28,18 Q26,21 24,18 Z"/>
+    <path
+        android:fillColor="#FFB6C1"
+        android:pathData="M36,18 Q38,15 40,18 Q38,21 36,18 Z"/>
+    
+    <!-- Eyes -->
+    <path
+        android:fillColor="#000000"
+        android:pathData="M26,28 Q28,26 30,28 Q28,30 26,28 Z"/>
+    <path
+        android:fillColor="#000000"
+        android:pathData="M34,28 Q36,26 38,28 Q36,30 34,28 Z"/>
+    
+    <!-- Nose -->
+    <path
+        android:fillColor="#FF69B4"
+        android:pathData="M31,32 Q32,31 33,32 Q32,33 31,32 Z"/>
+    
+    <!-- Tail -->
+    <path
+        android:fillColor="#8B4513"
+        android:pathData="M32,56C32,56 28,60 24,58C20,56 18,52 20,48C22,44 26,46 28,50L32,56Z"/>
+</vector>

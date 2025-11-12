@@ -1,0 +1,53 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="64dp"
+    android:height="64dp"
+    android:viewportWidth="64"
+    android:viewportHeight="64">
+    
+    <!-- Ground -->
+    <path
+        android:fillColor="#228B22"
+        android:pathData="M0,48 L64,48 L64,64 L0,64 Z"/>
+    
+    <!-- Holes (elliptical shapes using path) -->
+    <path
+        android:fillColor="#654321"
+        android:pathData="M10,48 Q16,45 22,48 Q16,51 10,48 Z"/>
+    <path
+        android:fillColor="#654321"
+        android:pathData="M26,48 Q32,45 38,48 Q32,51 26,48 Z"/>
+    <path
+        android:fillColor="#654321"
+        android:pathData="M42,48 Q48,45 54,48 Q48,51 42,48 Z"/>
+    
+    <!-- Mouse body -->
+    <path
+        android:fillColor="#8B4513"
+        android:pathData="M24,40 Q32,30 40,40 Q32,50 24,40 Z"/>
+    
+    <!-- Mouse ears -->
+    <path
+        android:fillColor="#8B4513"
+        android:pathData="M25,32 Q28,28 31,32 Q28,36 25,32 Z"/>
+    <path
+        android:fillColor="#8B4513"
+        android:pathData="M33,32 Q36,28 39,32 Q36,36 33,32 Z"/>
+    
+    <!-- Eyes -->
+    <path
+        android:fillColor="#000000"
+        android:pathData="M27.5,36 Q29,34.5 30.5,36 Q29,37.5 27.5,36 Z"/>
+    <path
+        android:fillColor="#000000"
+        android:pathData="M33.5,36 Q35,34.5 36.5,36 Q35,37.5 33.5,36 Z"/>
+    
+    <!-- Hammer handle -->
+    <path
+        android:fillColor="#8B4513"
+        android:pathData="M44,8 L46,8 L46,28 L44,28 Z"/>
+    
+    <!-- Hammer head -->
+    <path
+        android:fillColor="#696969"
+        android:pathData="M40,8 L50,8 L50,14 L40,14 Z"/>
+</vector>

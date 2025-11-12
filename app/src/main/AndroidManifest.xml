@@ -58,6 +58,17 @@
             android:exported="false"
             android:label="Tower Bloxx" />
 
+        <activity
+            android:name=".BubbleShooter.BubbleShooterActivity"
+            android:exported="false"
+            android:label="Bubble Shooter"
+            android:screenOrientation="portrait" />
+
+        <activity
+            android:name=".WhackAMole.WhackAMoleActivity"
+            android:exported="false"
+            android:label="Whack-a-Mole"
+            android:screenOrientation="portrait" />
 
         <activity
             android:name=".MainActivity"

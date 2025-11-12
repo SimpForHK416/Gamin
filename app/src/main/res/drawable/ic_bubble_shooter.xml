@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="64dp"
+    android:height="64dp"
+    android:viewportWidth="64"
+    android:viewportHeight="64">
+    
+    <!-- Background -->
+    <path
+        android:fillColor="#2196F3"
+        android:pathData="M0,0h64v64h-64z"/>
+    
+    <!-- Bubbles -->
+    <path
+        android:fillColor="#FF5722"
+        android:pathData="M16,10 A6,6 0 1,1 16,22 A6,6 0 1,1 16,10 Z"/>
+    
+    <path
+        android:fillColor="#4CAF50"
+        android:pathData="M32,10 A6,6 0 1,1 32,22 A6,6 0 1,1 32,10 Z"/>
+    
+    <path
+        android:fillColor="#FFEB3B"
+        android:pathData="M48,10 A6,6 0 1,1 48,22 A6,6 0 1,1 48,10 Z"/>
+    
+    <path
+        android:fillColor="#9C27B0"
+        android:pathData="M24,22 A6,6 0 1,1 24,34 A6,6 0 1,1 24,22 Z"/>
+    
+    <path
+        android:fillColor="#FF9800"
+        android:pathData="M40,22 A6,6 0 1,1 40,34 A6,6 0 1,1 40,22 Z"/>
+    
+    <!-- Shooter -->
+    <path
+        android:fillColor="#795548"
+        android:pathData="M30,50 L34,50 L34,40 L30,40 Z"/>
+    
+    <!-- Current bubble -->
+    <path
+        android:fillColor="#F44336"
+        android:pathData="M32,41 A4,4 0 1,1 32,49 A4,4 0 1,1 32,41 Z"/>
+</vector>

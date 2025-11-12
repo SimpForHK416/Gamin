@@ -22,6 +22,8 @@ import com.example.gamin.ui.theme.GaminTheme
 import com.example.gamin.game2408.Game2408Activity
 import com.example.gamin.Pong.PongActivity
 import com.example.gamin.tetris.TetrisActivity
+import com.example.gamin.BubbleShooter.BubbleShooterActivity
+import com.example.gamin.WhackAMole.WhackAMoleActivity
 
 class GameIntroActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -66,11 +68,13 @@ fun GameIntroScreen(
     val isFlappyBirdGame = targetClass == FlappyBirdActivity::class.java
     val isMemoryCardGame = targetClass == MemoryCardActivity::class.java
     val is2048Game = targetClass == Game2408Activity::class.java
-    val isPongGame = targetClass == PongActivity::class.java // <-- Giữ nguyên
+    val isPongGame = targetClass == PongActivity::class.java
     val isTetrisGame = targetClass == TetrisActivity::class.java
+    val isBubbleShooterGame = targetClass == BubbleShooterActivity::class.java
+    val isWhackAMoleGame = targetClass == WhackAMoleActivity::class.java
 
-    // <-- ĐÃ SỬA: Xóa Pong (isPongGame) khỏi danh sách chơi đơn -->
-    val isSinglePlayerGame = isSnakeGame || isMinesweeperGame || is2048Game || isFlappyBirdGame || isMemoryCardGame
+    // Danh sách game chơi đơn (bao gồm 2 game mới)
+    val isSinglePlayerGame = isSnakeGame || isMinesweeperGame || is2048Game || isFlappyBirdGame || isMemoryCardGame || isBubbleShooterGame || isWhackAMoleGame
 
     // <-- ĐÃ SỬA: Game nhiều người "cũ" (X/O) -->
     val isMultiplayerGame = !isSinglePlayerGame && !isTetrisGame && !isPongGame
@@ -99,8 +103,27 @@ fun GameIntroScreen(
 
         // --- Logic Hiển thị Nút Chơi Game ---
 
+        // Logic cho Whack-a-Mole với 3 độ khó
+        if (isWhackAMoleGame) {
+            Text("Chọn độ khó:", style = MaterialTheme.typography.titleMedium)
+            Spacer(modifier = Modifier.height(16.dp))
+            val difficulties = listOf("Dễ", "Trung bình", "Khó")
+            difficulties.forEach { difficulty ->
+                Button(
+                    onClick = {
+                        if (targetClass != null) {
+                            val intent = Intent(context, targetClass)
+                            intent.putExtra("difficulty", difficulty)
+                            context.startActivity(intent)
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+                ) { Text(difficulty) }
+            }
+        }
+        
         // (Logic Tetris giữ nguyên)
-        if (isTetrisGame) {
+        else if (isTetrisGame) {
             Text("Chọn độ khó:", style = MaterialTheme.typography.titleMedium)
             Spacer(modifier = Modifier.height(16.dp))
             val difficulties = listOf("Dễ", "Trung bình", "Khó")
@@ -134,7 +157,8 @@ fun GameIntroScreen(
                     isFlappyBirdGame -> "Chơi ngay 🐦"
                     is2048Game -> "Chơi ngay 🔢"
                     isMinesweeperGame -> "Chơi ngay 💣"
-                    // (Pong đã bị xóa khỏi đây)
+                    isBubbleShooterGame -> "Chơi ngay 🎯"
+                    isWhackAMoleGame -> "Chơi ngay 🐭"
                     else -> "Chơi ngay 🐍"
                 }
                 Text(text = buttonText)

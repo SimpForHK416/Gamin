@@ -29,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.example.gamin.Arkanoid.ArkanoidActivity
+import com.example.gamin.BubbleShooter.BubbleShooterActivity
 import com.example.gamin.FlappyBird.FlappyBirdActivity
 import com.example.gamin.MemoryCard.MemoryCardActivity
 import com.example.gamin.MineSweeper.MinesweeperActivity
@@ -39,6 +40,7 @@ import com.example.gamin.game2408.Game2408Activity
 import com.example.gamin.snake.SnakeActivity
 import com.example.gamin.tetris.TetrisActivity
 import com.example.gamin.ui.theme.GaminTheme
+import com.example.gamin.WhackAMole.WhackAMoleActivity
 
 data class GameItem(
     val title: String,
@@ -143,6 +145,20 @@ fun GameMenu(onGameClick: (GameItem) -> Unit) {
            "Thả khối nhà sao cho chồng khít với tầng trước đó. Lệch quá là thua!",
             R.drawable.ic_tower_bloxx_placeholder,
             TowerBloxxActivity::class.java
+        ),
+
+        GameItem(
+            "Bubble Shooter",
+            "Bắn bong bóng cùng màu để tạo nhóm 3 quả trở lên và loại bỏ chúng. Đừng để bong bóng chạm đáy!",
+            R.drawable.ic_bubble_shooter,
+            BubbleShooterActivity::class.java
+        ),
+
+        GameItem(
+            "Whack-a-Mole",
+            "Đập chuột khi chúng xuất hiện từ lỗ! Tốc độ tăng dần theo thời gian. 3 độ khó khác nhau!",
+            R.drawable.ic_whack_a_mole,
+            WhackAMoleActivity::class.java
         )
 
 
