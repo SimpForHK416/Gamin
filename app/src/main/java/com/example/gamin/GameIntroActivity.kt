@@ -14,16 +14,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+// =============================================
+// THÊM IMPORT CHO ARKANOID
+import com.example.gamin.Arkanoid.ArkanoidActivity
+// =============================================
+import com.example.gamin.BubbleShooter.BubbleShooterActivity
 import com.example.gamin.FlappyBird.FlappyBirdActivity
 import com.example.gamin.MemoryCard.MemoryCardActivity
-import com.example.gamin.snake.SnakeActivity
 import com.example.gamin.MineSweeper.MinesweeperActivity
-import com.example.gamin.ui.theme.GaminTheme
-import com.example.gamin.game2408.Game2408Activity
 import com.example.gamin.Pong.PongActivity
-import com.example.gamin.tetris.TetrisActivity
-import com.example.gamin.BubbleShooter.BubbleShooterActivity
 import com.example.gamin.WhackAMole.WhackAMoleActivity
+import com.example.gamin.game2408.Game2408Activity
+import com.example.gamin.snake.SnakeActivity
+import com.example.gamin.tetris.TetrisActivity
+import com.example.gamin.ui.theme.GaminTheme
 
 class GameIntroActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -72,11 +76,17 @@ fun GameIntroScreen(
     val isTetrisGame = targetClass == TetrisActivity::class.java
     val isBubbleShooterGame = targetClass == BubbleShooterActivity::class.java
     val isWhackAMoleGame = targetClass == WhackAMoleActivity::class.java
+    // =============================================
+    // THÊM BIẾN KIỂM TRA CHO ARKANOID
+    val isArkanoidGame = targetClass == ArkanoidActivity::class.java
+    // =============================================
 
-    // Danh sách game chơi đơn (bao gồm 2 game mới)
-    val isSinglePlayerGame = isSnakeGame || isMinesweeperGame || is2048Game || isFlappyBirdGame || isMemoryCardGame || isBubbleShooterGame || isWhackAMoleGame
+    // Danh sách game chơi đơn
+    val isSinglePlayerGame = isSnakeGame || isMinesweeperGame || is2048Game ||
+            isFlappyBirdGame || isMemoryCardGame || isBubbleShooterGame ||
+            isWhackAMoleGame || isArkanoidGame // <-- THÊM ARKANOID VÀO ĐÂY
 
-    // <-- ĐÃ SỬA: Game nhiều người "cũ" (X/O) -->
+    // Game nhiều người "cũ" (X/O)
     val isMultiplayerGame = !isSinglePlayerGame && !isTetrisGame && !isPongGame
 
 
@@ -103,7 +113,7 @@ fun GameIntroScreen(
 
         // --- Logic Hiển thị Nút Chơi Game ---
 
-        // Logic cho Whack-a-Mole với 3 độ khó
+        // Logic cho Whack-a-Mole
         if (isWhackAMoleGame) {
             Text("Chọn độ khó:", style = MaterialTheme.typography.titleMedium)
             Spacer(modifier = Modifier.height(16.dp))
@@ -121,8 +131,8 @@ fun GameIntroScreen(
                 ) { Text(difficulty) }
             }
         }
-        
-        // (Logic Tetris giữ nguyên)
+
+        // Logic Tetris
         else if (isTetrisGame) {
             Text("Chọn độ khó:", style = MaterialTheme.typography.titleMedium)
             Spacer(modifier = Modifier.height(16.dp))
@@ -141,7 +151,7 @@ fun GameIntroScreen(
             }
         }
 
-        // (Logic game 1 người chơi khác giữ nguyên)
+        // Logic game 1 người chơi khác (BAO GỒM CẢ ARKANOID)
         else if (isSinglePlayerGame) {
             Button(
                 onClick = {
@@ -152,6 +162,9 @@ fun GameIntroScreen(
                 },
                 modifier = Modifier.fillMaxWidth()
             ) {
+                // =============================================
+                // THÊM TEXT CHO NÚT ARKANOID
+                // =============================================
                 val buttonText = when {
                     isMemoryCardGame -> "Chơi ngay 🃏"
                     isFlappyBirdGame -> "Chơi ngay 🐦"
@@ -159,13 +172,14 @@ fun GameIntroScreen(
                     isMinesweeperGame -> "Chơi ngay 💣"
                     isBubbleShooterGame -> "Chơi ngay 🎯"
                     isWhackAMoleGame -> "Chơi ngay 🐭"
+                    isArkanoidGame -> "Chơi ngay 🧱" // <-- THÊM TEXT MỚI
                     else -> "Chơi ngay 🐍"
                 }
                 Text(text = buttonText)
             }
         }
 
-        // <-- ĐÃ SỬA: Gộp Pong vào chung logic với game nhiều người -->
+        // Logic game nhiều người (Pong, NoughtsAndCrosses)
         else if (isMultiplayerGame || isPongGame) {
             Button(
                 onClick = {
