@@ -1,39 +1,27 @@
-Mini-game hub with at least 20 minigame, some game will have high-score calculation feature for scoreboard feature, every one musst do at least 5 game and atleast 1 of the games must have pve mode, reference online is crucial, avoid chatbot for intsys gamemode
+Mỗi đứa sẽ phải chọn ra 1 game rồi làm cho nó rộng hơn (thêm màn, thêm cơ chế), làm bất cứ thứ gì để tăng thời gian chơi, thêm cốt truyện nếu cần, nếu trong dánh sách game ko có game nào làm được theo ý mình thì có thể tự làm thêm game mới, NHƯNG PHẢI TỚ TẠO CƠ CHẾ TÍNH ĐIỂM ĐỂ ĐẾN LÚC XONG HẾT T LÀM CƠ CHẾ LEADERBOARD
 
-Some ideas (Add here):
+Các game hiện tại để chọn, nếu chọn thì chỉnh readme.md này và ghi tên mình vào:
 
-Pong (Done)
+1.Arkanoid
 
-Noughts and Crosses(Done)  
+2.BubbleShooter
 
-2048 (done)
+3.FlappyBird
 
-Snake (done) 
+4. 2048
 
-Flappy Bird clone (done) 
+5. Memory Card
 
-Memory Match (Card flipping) (done)
+6. MineSweeper
 
-Tower Blocxx clone (Vũ Minh Đức)
+7. X-O
 
-Arkanoid (done)
+8. Pong
 
-Minesweeper (done)
+9. Snake
 
-Simon([Memory Lights](https://en.wikipedia.org/wiki/Simon_(game)))
+10. Tetris
 
-Sliding Puzzle ([15 Puzzle](https://en.wikipedia.org/wiki/15_puzzle))
+11. WhackAMole
 
-tetris (done)
-
-Bubble shooter clone (done)
-
-Whack a mole (done)
-
-Upcoming feature:
-
-Calculating score (some game)
-
-Scoreboard
-
-Testing commiting
+12. TowerBloxx
