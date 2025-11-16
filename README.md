@@ -2,7 +2,7 @@ Mỗi đứa sẽ phải chọn ra 1 game rồi làm cho nó rộng hơn (thêm 
 
 Các game hiện tại để chọn, nếu chọn thì chỉnh readme.md này và ghi tên mình vào:
 
-1.Arkanoid
+1.Arkanoid (Vũ Minh Đức)
 
 2.BubbleShooter
 
