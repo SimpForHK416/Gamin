@@ -7,21 +7,3 @@ Các game hiện tại để chọn, nếu chọn thì chỉnh readme.md này v�
 2.BubbleShooter
 
 3.FlappyBird
-
-4. 2048
-
-5. Memory Card
-
-6. MineSweeper
-
-7. X-O
-
-8. Pong
-
-9. Snake
-
-10. Tetris
-
-11. WhackAMole
-
-12. TowerBloxx
