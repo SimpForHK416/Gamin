@@ -28,6 +28,11 @@ import com.example.gamin.game2408.Game2408Activity
 import com.example.gamin.snake.SnakeActivity
 import com.example.gamin.tetris.TetrisActivity
 import com.example.gamin.ui.theme.GaminTheme
+// =============================================
+// THÊM IMPORT CHO MONSTER BATTLER
+// =============================================
+import com.example.gamin.MonsterBattler.MonsterBattlerActivity
+
 
 class GameIntroActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -80,11 +85,15 @@ fun GameIntroScreen(
     // THÊM BIẾN KIỂM TRA CHO ARKANOID
     val isArkanoidGame = targetClass == ArkanoidActivity::class.java
     // =============================================
+    // THÊM BIẾN KIỂM TRA CHO MONSTER BATTLER
+    // =============================================
+    val isMonsterBattlerGame = targetClass == MonsterBattlerActivity::class.java
+    // =============================================
 
     // Danh sách game chơi đơn
     val isSinglePlayerGame = isSnakeGame || isMinesweeperGame || is2048Game ||
             isFlappyBirdGame || isMemoryCardGame || isBubbleShooterGame ||
-            isWhackAMoleGame || isArkanoidGame // <-- THÊM ARKANOID VÀO ĐÂY
+            isWhackAMoleGame || isArkanoidGame || isMonsterBattlerGame // <-- THÊM MONSTER BATTLER VÀO ĐÂY
 
     // Game nhiều người "cũ" (X/O)
     val isMultiplayerGame = !isSinglePlayerGame && !isTetrisGame && !isPongGame
@@ -151,7 +160,7 @@ fun GameIntroScreen(
             }
         }
 
-        // Logic game 1 người chơi khác (BAO GỒM CẢ ARKANOID)
+        // Logic game 1 người chơi khác (BAO GỒM CẢ ARKANOID VÀ MONSTER BATTLER)
         else if (isSinglePlayerGame) {
             Button(
                 onClick = {
@@ -173,6 +182,10 @@ fun GameIntroScreen(
                     isBubbleShooterGame -> "Chơi ngay 🎯"
                     isWhackAMoleGame -> "Chơi ngay 🐭"
                     isArkanoidGame -> "Chơi ngay 🧱" // <-- THÊM TEXT MỚI
+                    // =============================================
+                    // THÊM TEXT CHO NÚT MONSTER BATTLER
+                    // =============================================
+                    isMonsterBattlerGame -> "Chơi ngay ⚔️" // <-- THÊM TEXT MỚI
                     else -> "Chơi ngay 🐍"
                 }
                 Text(text = buttonText)

@@ -71,6 +71,11 @@
             android:screenOrientation="portrait" />
 
         <activity
+            android:name=".MonsterBattler.MonsterBattlerActivity"
+            android:exported="false"
+            android:label="Monster Battler" />
+
+        <activity
             android:name=".MainActivity"
             android:exported="true"
             android:label="@string/app_name"

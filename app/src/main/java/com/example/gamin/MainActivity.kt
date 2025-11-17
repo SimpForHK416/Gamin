@@ -1,3 +1,4 @@
+// Vị trí file: com/example/gamin/MainActivity.kt
 package com.example.gamin
 
 import android.content.Intent
@@ -41,6 +42,10 @@ import com.example.gamin.snake.SnakeActivity
 import com.example.gamin.tetris.TetrisActivity
 import com.example.gamin.ui.theme.GaminTheme
 import com.example.gamin.WhackAMole.WhackAMoleActivity
+// =============================================
+//  THÊM IMPORT CHO GAME MỚI
+// =============================================
+import com.example.gamin.MonsterBattler.MonsterBattlerActivity
 
 data class GameItem(
     val title: String,
@@ -116,23 +121,20 @@ fun GameMenu(onGameClick: (GameItem) -> Unit) {
             MemoryCardActivity::class.java
         ),
 
-        // =============================================
-        // ĐÃ CẬP NHẬT GAME PONG
         GameItem(
             "Pong",
             "Dùng thanh trượt di chuyển lên xuống để đánh bóng. Đừng để lọt!",
-            R.drawable.ic_pong, // <-- ĐÃ THAY ĐỔI ICON THEO YÊU CẦU
+            R.drawable.ic_pong,
             PongActivity::class.java
         ),
-        // =============================================
-        //Tetris
+
         GameItem(
             "Tetris",
             "Luật chơi: Xếp các khối gạch rơi để tạo hàng ngang đầy. Hàng đầy sẽ biến mất!",
             R.drawable.ic_tetris_placeholder,
             TetrisActivity::class.java
         ),
-        //arkanoid
+
         GameItem(
             "Arkanoid",
             "Dùng thanh trượt để đỡ bóng, phá hủy toàn bộ gạch.",
@@ -142,7 +144,7 @@ fun GameMenu(onGameClick: (GameItem) -> Unit) {
 
         GameItem(
             "Tower Bloxx",
-           "Thả khối nhà sao cho chồng khít với tầng trước đó. Lệch quá là thua!",
+            "Thả khối nhà sao cho chồng khít với tầng trước đó. Lệch quá là thua!",
             R.drawable.ic_tower_bloxx_placeholder,
             TowerBloxxActivity::class.java
         ),
@@ -159,13 +161,19 @@ fun GameMenu(onGameClick: (GameItem) -> Unit) {
             "Đập chuột khi chúng xuất hiện từ lỗ! Tốc độ tăng dần theo thời gian. 3 độ khó khác nhau!",
             R.drawable.ic_whack_a_mole,
             WhackAMoleActivity::class.java
+        ),
+
+        // =============================================
+        //  ĐÂY LÀ GAME MỚI CỦA BẠN
+        // =============================================
+        GameItem(
+            "Monster Battler",
+            "Chọn 1 quái, chiến đấu qua các ải, nâng cấp và sống sót. Chơi cho đến khi bị đánh bại!",
+            R.drawable.ic_monster_battler, // <-- Nhớ thêm icon này vào drawable nhé!
+            MonsterBattlerActivity::class.java
         )
 
-
-    )
-
-
-
+    ) // <-- Kết thúc listOf
 
     LazyVerticalGrid(
         columns = GridCells.Fixed(2),
