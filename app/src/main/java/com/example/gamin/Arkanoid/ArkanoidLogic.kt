@@ -36,11 +36,13 @@ sealed class GameState {
     object Playing : GameState()
     object WaveClear : GameState()
     object GameOver : GameState()
+    object TimeUp : GameState()
 }
 
 enum class BrickType {
     NORMAL,
-    EXPLOSIVE
+    EXPLOSIVE,
+    BOSS
 }
 
 // === THAY ĐỔI: Đã xóa BALL_SLOW ===
@@ -71,6 +73,9 @@ data class BrickState(
     val color: Color,
     val type: BrickType,
     val powerUp: PowerUpType?,
+    val hasStar: Boolean = false,
+    val hitPoints: Int = if (type == BrickType.BOSS) 3 else 1,
+    val isFlashing: Boolean = false,
     val isDestroyed: Boolean = false
 )
 
@@ -78,7 +83,7 @@ data class BrickState(
 fun createBrickPattern(gameWidth: Float, wave: Int): List<BrickState> {
     val totalBrickWidth = gameWidth - BRICK_PADDING * (BRICK_COLS + 1)
     val brickWidth = totalBrickWidth / BRICK_COLS
-    val colors = listOf(Color.Red, Color.Yellow, Color.Green, Color.Cyan, Color.Magenta)
+    val colors = listOf(Color.Red, Color.Green, Color.Cyan, Color.Magenta, Color.Blue)
 
     val bricks = mutableListOf<BrickState>()
     val patternType = wave % 5
@@ -105,13 +110,14 @@ fun createBrickPattern(gameWidth: Float, wave: Int): List<BrickState> {
                 var powerUp: PowerUpType? = null
                 var color = colors.random()
 
+                // Xác suất tạo EXPLOSIVE
                 if (Random.nextFloat() < EXPLOSIVE_CHANCE) {
                     brickType = BrickType.EXPLOSIVE
                     color = Color.DarkGray
-                } else if (Random.nextFloat() < POWER_UP_CHANCE) {
-                    // === THAY ĐỔI: Lọc ra loại đã bị xóa ===
+                }
+                // Xác suất tạo POWER-UP
+                else if (Random.nextFloat() < POWER_UP_CHANCE) {
                     powerUp = PowerUpType.values().random()
-                    // (Nếu bạn thêm lại nhiều loại, hãy đảm bảo gạch power-up có màu riêng)
                     color = Color.Magenta
                 }
 
@@ -126,8 +132,35 @@ fun createBrickPattern(gameWidth: Float, wave: Int): List<BrickState> {
             }
         }
     }
+
+    // ===== Thêm 7 gạch BOSS ở hàng cuối (bảo vệ các gạch thường) =====
+    val bossRow = BRICK_ROWS - 1
+    val bossIndices = (0 until BRICK_COLS).shuffled().take(7) // chọn 7 cột ngẫu nhiên
+    bossIndices.forEach { col ->
+        val bossX = BRICK_PADDING + col * (brickWidth + BRICK_PADDING)
+        val bossY = TOP_PADDING_OFFSET + bossRow * (BRICK_HEIGHT + BRICK_PADDING)
+        val bossRect = Rect(
+            left = bossX,
+            top = bossY,
+            right = bossX + brickWidth,
+            bottom = bossY + BRICK_HEIGHT
+        )
+        bricks.add(
+            BrickState(
+                rect = bossRect,
+                color = Color(0xFFFF4500), // màu cam BOSS
+                type = BrickType.BOSS,
+                powerUp = null,
+                hitPoints = 3,
+                isFlashing = false
+            )
+        )
+    }
+
     return bricks
 }
+
+
 
 fun createInitialBall(gameWidth: Float, gameHeight: Float, speed: Float): BallState {
     val angleRadians = Math.toRadians(INITIAL_BALL_ANGLE)

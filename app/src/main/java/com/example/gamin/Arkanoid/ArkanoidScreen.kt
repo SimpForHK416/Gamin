@@ -7,6 +7,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -23,15 +25,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import kotlin.math.*
-import kotlin.random.Random // Đảm bảo đã import
+import kotlin.random.Random
 
-// Data class để theo dõi hiệu ứng và thời gian
 private data class ActiveEffect(
     val type: PowerUpType,
-    val expirationTime: Long // Thời điểm hết hạn (ms)
+    val expirationTime: Long
 )
-
-// ============ MAIN GAME ============
 
 @SuppressLint("ContextCastToActivity", "UnusedBoxWithConstraintsScope")
 @Composable
@@ -39,28 +38,100 @@ fun ArkanoidScreen() {
     val context = LocalContext.current
     val activity = (context as? Activity)
 
+    var showLevelSelect by remember { mutableStateOf(true) }
+    var selectedWave by remember { mutableStateOf(1) }
+
+    if (showLevelSelect) {
+        LevelSelectScreen(
+            onWaveSelected = { wave ->
+                selectedWave = wave
+                showLevelSelect = false
+            }
+        )
+    } else {
+        ArkanoidGameScreen(
+            initialWave = selectedWave,
+            onBackToLevelSelect = { showLevelSelect = true }
+        )
+    }
+}
+
+@Composable
+private fun LevelSelectScreen(onWaveSelected: (Int) -> Unit) {
+    val waves = (1..10).toList()
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFF001F3F)),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                "CHỌN MÀN CHƠI",
+                style = MaterialTheme.typography.headlineMedium.copy(color = Color.White),
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+
+            LazyColumn(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                contentPadding = PaddingValues(vertical = 8.dp)
+            ) {
+                items(waves) { wave ->
+                    Button(
+                        onClick = { onWaveSelected(wave) },
+                        modifier = Modifier
+                            .fillMaxWidth(0.7f)
+                            .padding(vertical = 6.dp)
+                    ) {
+                        Text("Màn $wave")
+                    }
+                }
+            }
+        }
+    }
+}
+
+@SuppressLint("UnusedBoxWithConstraintsScope")
+@Composable
+private fun ArkanoidGameScreen(initialWave: Int, onBackToLevelSelect: () -> Unit) {
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val gameWidth = constraints.maxWidth.toFloat()
         val gameHeight = constraints.maxHeight.toFloat()
 
         var paddle by remember { mutableStateOf(PaddleState(gameWidth / 2)) }
         var paddleWidth by remember { mutableFloatStateOf(INITIAL_PADDLE_WIDTH) }
-
         var activeEffects by remember { mutableStateOf(emptySet<ActiveEffect>()) }
 
         var gameState by remember { mutableStateOf<GameState>(GameState.Ready) }
         var score by remember { mutableIntStateOf(0) }
         var lives by remember { mutableIntStateOf(3) }
-        var wave by remember { mutableIntStateOf(1) }
+        var wave by remember { mutableIntStateOf(initialWave) }
         var countdown by remember { mutableIntStateOf(3) }
+
+        var timeLeftSeconds by remember { mutableIntStateOf(180) }
+        var _timeAccumulator by remember { mutableStateOf(0f) }
 
         var balls by remember {
             mutableStateOf(listOf(createInitialBall(gameWidth, gameHeight, INITIAL_BALL_SPEED).copy(velocityX = 0f, velocityY = 0f)))
         }
-        var bricks by remember { mutableStateOf(createBrickPattern(gameWidth, wave = 1)) }
-        var powerUps by remember { mutableStateOf(emptyList<PowerUpItem>()) }
 
-        // === RESET FUNCTIONS ===
+        var bricks by remember {
+            mutableStateOf(mutableListOf<BrickState>().apply {
+                addAll(createBrickPattern(gameWidth, wave))
+                val normalIndices = this.indices.filter { idx -> this[idx].type == BrickType.NORMAL }
+                val starCount = minOf(3, maxOf(2, (2 + Random.nextInt(2))))
+                normalIndices.shuffled().take(starCount).forEach { idx ->
+                    val b = this[idx]
+                    this[idx] = b.copy(hasStar = true)
+                }
+            })
+        }
+
+        var powerUps by remember { mutableStateOf(emptyList<PowerUpItem>()) }
+        var starsCollected by remember { mutableIntStateOf(0) }
+        val REQUIRED_STARS = 2
+
         val resetBallAndPaddle = {
             paddleWidth = INITIAL_PADDLE_WIDTH
             activeEffects = emptySet()
@@ -68,23 +139,45 @@ fun ArkanoidScreen() {
             balls = listOf(createInitialBall(gameWidth, gameHeight, speed).copy(velocityX = 0f, velocityY = 0f))
             powerUps = emptyList()
             gameState = GameState.Ready
+            starsCollected = 0
+            timeLeftSeconds = 180
+            _timeAccumulator = 0f
+        }
+
+        val setupBricksForWave: (Int) -> Unit = { w ->
+            val list = createBrickPattern(gameWidth, w).toMutableList()
+            val normalIndices = list.indices.filter { idx -> list[idx].type == BrickType.NORMAL }
+            val starCount = minOf(3, maxOf(2, (2 + Random.nextInt(2))))
+            normalIndices.shuffled().take(starCount).forEach { idx ->
+                val b = list[idx]
+                list[idx] = b.copy(hasStar = true)
+            }
+            bricks = list
+            starsCollected = 0
+            timeLeftSeconds = 180
+            _timeAccumulator = 0f
         }
 
         val nextWave = {
             wave++
-            bricks = createBrickPattern(gameWidth, wave)
+            setupBricksForWave(wave)
             resetBallAndPaddle()
         }
 
-        val restartGame = {
+        val restartLevel = {
             score = 0
             lives = 3
-            wave = 1
-            bricks = createBrickPattern(gameWidth, wave)
+            wave = initialWave
+            setupBricksForWave(wave)
             resetBallAndPaddle()
         }
 
-        // === GAME LOOP ===
+        fun formatTime(s: Int): String {
+            val mm = s / 60
+            val ss = s % 60
+            return String.format("%02d:%02d", mm, ss)
+        }
+
         LaunchedEffect(gameState) {
             if (gameState != GameState.Playing) return@LaunchedEffect
             var lastTime = System.nanoTime()
@@ -94,10 +187,19 @@ fun ArkanoidScreen() {
                 val dt = (now - lastTime) / 1_000_000_000f
                 lastTime = now
 
-                // 1. KIỂM TRA HIỆU ỨNG (Timer 5 giây)
+                _timeAccumulator += dt
+                if (_timeAccumulator >= 1f) {
+                    val dec = floor(_timeAccumulator).toInt()
+                    timeLeftSeconds = (timeLeftSeconds - dec).coerceAtLeast(0)
+                    _timeAccumulator -= dec.toFloat()
+                }
+                if (timeLeftSeconds <= 0) {
+                    gameState = GameState.GameOver
+                    break
+                }
+
                 val currentTime = System.currentTimeMillis()
                 val (expired, active) = activeEffects.partition { it.expirationTime < currentTime }
-
                 if (expired.isNotEmpty()) {
                     activeEffects = active.toSet()
                     val hadPaddleGrow = expired.any { it.type == PowerUpType.PADDLE_GROW }
@@ -106,7 +208,6 @@ fun ArkanoidScreen() {
                     }
                 }
 
-                // 2. CẬP NHẬT TRẠNG THÁI BÓNG
                 var newBalls = balls.toMutableList()
                 val ballsToRemove = mutableListOf<BallState>()
 
@@ -149,7 +250,6 @@ fun ArkanoidScreen() {
                 }
                 newBalls.removeAll(ballsToRemove)
 
-                // 3. KIỂM TRA MẠNG
                 if (newBalls.isEmpty() && balls.isNotEmpty()) {
                     lives--
                     if (lives <= 0) {
@@ -160,10 +260,14 @@ fun ArkanoidScreen() {
                     continue
                 }
 
-                // 4. CẬP NHẬT VA CHẠM GẠCH
                 var newBricks = bricks.toMutableList()
                 val bricksToDestroy = mutableSetOf<Int>()
                 val newPowerUps = mutableListOf<PowerUpItem>()
+
+                // === ADDED: Reset tất cả BOSS nháy khi không bị chạm ===
+                newBricks = newBricks.map { b ->
+                    if (b.type == BrickType.BOSS && b.isFlashing) b.copy(isFlashing = false) else b
+                }.toMutableList()
 
                 for (ballIndex in newBalls.indices) {
                     val ball = newBalls[ballIndex]
@@ -198,6 +302,19 @@ fun ArkanoidScreen() {
                                 }
                             }
 
+                            if (brick.type == BrickType.BOSS) {
+                                // Giảm hitPoints và bật nháy khi bóng chạm
+                                if (brick.hitPoints > 1) {
+                                    newBricks[brickIndex] = brick.copy(
+                                        hitPoints = brick.hitPoints - 1,
+                                        isFlashing = true // === ADDED: bật nháy
+                                    )
+                                    bricksToDestroy.remove(brickIndex)
+                                } else {
+                                    newBricks[brickIndex] = brick.copy(isDestroyed = true, isFlashing = false)
+                                }
+                            }
+
                             if (brick.powerUp != null) {
                                 newPowerUps.add(PowerUpItem(
                                     x = brick.rect.center.x,
@@ -208,13 +325,20 @@ fun ArkanoidScreen() {
                         }
                     }
                 }
+
                 if (bricksToDestroy.isNotEmpty()) {
+                    val newlyDestroyedStarCount = bricksToDestroy.count { idx ->
+                        idx in bricks.indices && bricks[idx].hasStar && !bricks[idx].isDestroyed
+                    }
+                    if (newlyDestroyedStarCount > 0) {
+                        starsCollected += newlyDestroyedStarCount
+                    }
+
                     newBricks = newBricks.mapIndexed { index, brick ->
                         if (bricksToDestroy.contains(index)) brick.copy(isDestroyed = true) else brick
                     }.toMutableList()
                 }
 
-                // 5. CẬP NHẬT VẬT PHẨM
                 var activePowerUps = powerUps.toMutableList()
                 val powerUpsToRemove = mutableListOf<PowerUpItem>()
                 activePowerUps.addAll(newPowerUps)
@@ -271,31 +395,15 @@ fun ArkanoidScreen() {
                 bricks = newBricks
                 powerUps = activePowerUps
 
-                // 6. KIỂM TRA QUA MÀN
                 if (bricks.all { it.isDestroyed }) {
                     gameState = GameState.WaveClear
-                    countdown = 3
-                    continue
+                    break
                 }
+
                 delay(16)
             }
         }
 
-        // VÒNG LẶP ĐẾM NGƯỢC
-        LaunchedEffect(gameState) {
-            if (gameState != GameState.WaveClear) return@LaunchedEffect
-            balls = emptyList()
-            powerUps = emptyList()
-            while (countdown > 0 && gameState == GameState.WaveClear) {
-                delay(1000)
-                countdown--
-            }
-            if (gameState == GameState.WaveClear) {
-                nextWave()
-            }
-        }
-
-        // === DRAW ===
         Canvas(
             modifier = Modifier
                 .fillMaxSize()
@@ -316,27 +424,45 @@ fun ArkanoidScreen() {
                                 val init = createInitialBall(gameWidth, gameHeight, speed)
                                 balls = listOf(init.copy(x = paddle.x))
                                 gameState = GameState.Playing
+                                timeLeftSeconds = 180
+                                _timeAccumulator = 0f
                             }
-                            GameState.GameOver -> restartGame()
+                            GameState.GameOver -> {
+                                resetBallAndPaddle()
+                            }
                             else -> {}
                         }
                     }
                 }
         ) {
-            // bricks
             bricks.filter { !it.isDestroyed }.forEach { brick ->
+                // === ADDED: đổi màu nháy cho BOSS ===
+                val brickColor = if (brick.type == BrickType.BOSS && brick.isFlashing) {
+                    Color.Yellow // Nháy vàng
+                } else if (brick.type == BrickType.BOSS) {
+                    Color(0xFFFFA500) // Màu BOSS bình thường (cam)
+                } else {
+                    brick.color
+                }
+
                 drawRoundRect(
-                    color = brick.color,
+                    color = brickColor,
                     topLeft = brick.rect.topLeft,
                     size = brick.rect.size,
                     cornerRadius = CornerRadius(8f, 8f)
                 )
+
+                // Vẽ hiệu ứng riêng cho EXPLOSIVE
                 if (brick.type == BrickType.EXPLOSIVE) {
                     drawCircle(Color.Red, radius = 10f, center = brick.rect.center)
                 }
+
+                // Vẽ sao nếu brick có star
+                if (brick.hasStar) {
+                    drawCircle(Color.Yellow, radius = 12f, center = brick.rect.center)
+                }
             }
 
-            // paddle
             drawRoundRect(
                 color = Color.White,
                 topLeft = Offset(
@@ -347,14 +473,12 @@ fun ArkanoidScreen() {
                 cornerRadius = CornerRadius(10f, 10f)
             )
 
-            // balls
             balls.forEach { ball ->
                 drawCircle(Color.Yellow, BALL_SIZE / 2, Offset(ball.x, ball.y))
             }
 
-            // power-ups
             powerUps.forEach { item ->
-                val color = when(item.type) {
+                val color = when (item.type) {
                     PowerUpType.MULTI_BALL -> Color.Green
                     PowerUpType.PADDLE_GROW -> Color.Cyan
                 }
@@ -362,30 +486,43 @@ fun ArkanoidScreen() {
             }
         }
 
-        // 1. HUD (Chỉ số)
         ArkanoidHud(
             score = score,
             lives = lives,
             wave = wave,
-            onBackClick = { activity?.finish() }
+            stars = starsCollected,
+            timeText = formatTime(timeLeftSeconds),
+            onBackClick = onBackToLevelSelect
         )
 
-        // 2. Status Text (Thông báo)
         ArkanoidStatusText(
             gameState = gameState,
             countdown = countdown
         )
+
+        if (gameState == GameState.WaveClear) {
+            AlertDialog(
+                onDismissRequest = { },
+                title = { Text("Kết thúc màn $wave") },
+                text = { Text("Bạn thu thập $starsCollected ngôi sao trong màn này.\nChạm tiếp để qua màn!") },
+                confirmButton = {
+                    Button(onClick = {
+                        nextWave()
+                        gameState = GameState.Ready
+                    }) { Text("TIẾP TỤC") }
+                }
+            )
+        }
     }
 }
 
-/**
- * (YC4) Composable con để hiển thị HUD (Điểm, Mạng, Màn)
- */
 @Composable
-private fun BoxScope.ArkanoidHud( // <-- ĐÃ SỬA LỖI Ở ĐÂY
+private fun BoxScope.ArkanoidHud(
     score: Int,
     lives: Int,
     wave: Int,
+    stars: Int,
+    timeText: String,
     onBackClick: () -> Unit
 ) {
     Row(
@@ -394,7 +531,7 @@ private fun BoxScope.ArkanoidHud( // <-- ĐÃ SỬA LỖI Ở ĐÂY
             .height((SCORE_PANEL_HEIGHT / 2).dp)
             .background(Color(0xAA202020))
             .padding(horizontal = 16.dp)
-            .align(Alignment.TopCenter), // <-- Dòng này đã hợp lệ
+            .align(Alignment.TopCenter),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
@@ -406,15 +543,12 @@ private fun BoxScope.ArkanoidHud( // <-- ĐÃ SỬA LỖI Ở ĐÂY
             Text("QUAY LẠI", style = MaterialTheme.typography.bodySmall)
         }
         Text(
-            text = "Score: $score | Lives: $lives | Wave: $wave",
+            text = "Score: $score | Lives: $lives | Wave: $wave | ⭐ $stars | ⏱ $timeText",
             style = MaterialTheme.typography.titleMedium.copy(color = Color.White)
         )
     }
 }
 
-/**
- * (YC4) Composable con để hiển thị các thông báo trạng thái game
- */
 @Composable
 private fun BoxScope.ArkanoidStatusText(
     gameState: GameState,
@@ -431,7 +565,7 @@ private fun BoxScope.ArkanoidStatusText(
                 style = MaterialTheme.typography.headlineLarge.copy(color = Color.Red)
             )
             GameState.WaveClear -> Text(
-                "QUA MÀN!\nSANG MÀN TIẾP TRONG... ${countdown}s",
+                "QUA MÀN! ĐANG HIỂN THỊ KẾT QUẢ",
                 style = MaterialTheme.typography.headlineMedium.copy(color = Color.Green, fontWeight = FontWeight.Bold),
                 lineHeight = 40.sp
             )
