@@ -133,22 +133,30 @@ fun createBrickPattern(gameWidth: Float, wave: Int): List<BrickState> {
         }
     }
 
-    // ===== Thêm 7 gạch BOSS ở hàng cuối (bảo vệ các gạch thường) =====
+    // ===== Thêm 3 gạch BOSS nằm giữa hàng cuối =====
     val bossRow = BRICK_ROWS - 1
-    val bossIndices = (0 until BRICK_COLS).shuffled().take(7) // chọn 7 cột ngẫu nhiên
-    bossIndices.forEach { col ->
+
+// Tính vị trí giữa
+    val bossCount = 3
+    val startCol = (BRICK_COLS - bossCount) / 2
+
+    for (i in 0 until bossCount) {
+        val col = startCol + i
+
         val bossX = BRICK_PADDING + col * (brickWidth + BRICK_PADDING)
         val bossY = TOP_PADDING_OFFSET + bossRow * (BRICK_HEIGHT + BRICK_PADDING)
+
         val bossRect = Rect(
             left = bossX,
             top = bossY,
             right = bossX + brickWidth,
             bottom = bossY + BRICK_HEIGHT
         )
+
         bricks.add(
             BrickState(
                 rect = bossRect,
-                color = Color(0xFFFF4500), // màu cam BOSS
+                color = Color(0xFFFF4500), // Màu cam BOSS
                 type = BrickType.BOSS,
                 powerUp = null,
                 hitPoints = 3,
