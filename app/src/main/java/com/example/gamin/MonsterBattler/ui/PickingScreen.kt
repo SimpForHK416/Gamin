@@ -1,4 +1,3 @@
-// Vị trí: com/example/gamin/MonsterBattler/ui/PickingScreen.kt
 package com.example.gamin.MonsterBattler.ui
 
 import androidx.compose.foundation.Image
@@ -6,15 +5,12 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-// =============================================
-// THÊM CÁC IMPORT CẦN THIẾT
-// =============================================
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.runtime.* // Thêm import này
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -23,17 +19,19 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.gamin.MonsterBattler.data.Monster // <-- Import data class
+import com.example.gamin.MonsterBattler.data.Monster
+import com.example.gamin.MonsterBattler.data.Reward
 
-/**
- * Màn hình chọn lựa, đọc data từ database
- */
+// =====================================================================
+// PHẦN 1: MÀN HÌNH CHỌN QUÁI VẬT (STARTER)
+// =====================================================================
+
 @Composable
 fun PickingScreen(
-    monsters: List<Monster>, // <-- THAY ĐỔI: Nhận List<Monster>
+    monsters: List<Monster>,
     onMonsterSelected: (String) -> Unit
 ) {
-    // State để theo dõi quái vật đang được "focus" (giống hover)
+    // Biến lưu quái vật đang được chọn (để hiện thông tin)
     var focusedMonster by remember { mutableStateOf<Monster?>(null) }
 
     Column(
@@ -41,43 +39,36 @@ fun PickingScreen(
             .fillMaxSize()
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
-        // Bỏ VerticalArrangement.Center để thêm Nút Xác Nhận ở dưới
     ) {
         Text(
             "Chọn quái vật khởi đầu",
             style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(bottom = 16.dp)
         )
-        Spacer(modifier = Modifier.height(32.dp))
 
-        // Hiển thị 3 lựa chọn
+        // Hàng chứa 3 thẻ bài quái vật
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
-            monsters.forEach { monster -> // <-- Dùng danh sách monster
-                // Kiểm tra xem quái vật này có đang được focus không
+            monsters.forEach { monster ->
                 val isFocused = monster.name == focusedMonster?.name
-
                 MonsterChoiceCard(
-                    name = monster.name, // <-- Chỉ truyền tên
-                    isFocused = isFocused, // <-- Truyền trạng thái focus
-                    onClick = {
-                        focusedMonster = monster // <-- Cập nhật monster đang được focus
-                    }
+                    name = monster.name,
+                    isFocused = isFocused,
+                    onClick = { focusedMonster = monster }
                 )
             }
         }
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // =============================================
-        // KHU VỰC HIỂN THỊ MÔ TẢ (TÍNH NĂNG MỚI)
-        // =============================================
+        // Khung hiển thị thông tin chi tiết
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(150.dp) // Cố định chiều cao cho info box
+                .height(150.dp)
                 .border(1.dp, Color.Gray, RoundedCornerShape(8.dp))
                 .padding(12.dp),
             contentAlignment = Alignment.TopStart
@@ -89,7 +80,6 @@ fun PickingScreen(
                     color = Color.Gray
                 )
             } else {
-                // Hiển thị thông tin của quái vật đang được focus
                 Column {
                     Text(
                         "${focusedMonster!!.name} - (Hệ: ${focusedMonster!!.type})",
@@ -110,38 +100,29 @@ fun PickingScreen(
             }
         }
 
-        Spacer(modifier = Modifier.weight(1f)) // Đẩy nút xuống dưới cùng
+        Spacer(modifier = Modifier.weight(1f))
 
-        // =============================================
-        // NÚT XÁC NHẬN (TÍNH NĂNG MỚI)
-        // =============================================
+        // Nút Xác Nhận
         Button(
             onClick = {
-                // Chỉ chạy khi focusedMonster không null
                 focusedMonster?.let { onMonsterSelected(it.name) }
             },
-            enabled = focusedMonster != null, // Chỉ bật khi đã chọn 1 con
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(50.dp)
+            enabled = focusedMonster != null,
+            modifier = Modifier.fillMaxWidth().height(50.dp)
         ) {
             Text("Xác nhận", fontSize = 16.sp)
         }
     }
 }
 
-/**
- * Một card riêng để hiển thị lựa chọn quái vật
- */
 @Composable
 private fun RowScope.MonsterChoiceCard(
     name: String,
-    isFocused: Boolean, // <-- Thêm biến
+    isFocused: Boolean,
     onClick: () -> Unit
 ) {
     val painter = painterFor(name = name)
-
-    // Nếu đang được focus, viền sẽ đổi màu
+    // Đổi màu viền nếu được chọn
     val borderColor = if (isFocused) MaterialTheme.colorScheme.primary else Color.Gray
 
     Card(
@@ -149,24 +130,20 @@ private fun RowScope.MonsterChoiceCard(
             .weight(1f)
             .padding(6.dp)
             .aspectRatio(0.8f)
-            .border(2.dp, borderColor, RoundedCornerShape(12.dp)) // <-- Dùng viền
+            .border(2.dp, borderColor, RoundedCornerShape(12.dp))
             .clickable { onClick() },
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(4.dp)
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(8.dp),
+            modifier = Modifier.fillMaxSize().padding(8.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.SpaceAround
         ) {
             Image(
                 painter = painter,
                 contentDescription = name,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(0.7f),
+                modifier = Modifier.fillMaxWidth().weight(0.7f),
                 contentScale = ContentScale.Fit
             )
             Text(
@@ -176,6 +153,90 @@ private fun RowScope.MonsterChoiceCard(
                 textAlign = TextAlign.Center,
                 modifier = Modifier.weight(0.3f)
             )
+        }
+    }
+}
+
+// =====================================================================
+// PHẦN 2: MÀN HÌNH CHỌN BUFF (SAU KHI THẮNG) - 3 Ô LỰA CHỌN
+// =====================================================================
+
+@Composable
+fun BuffSelectionScreen(
+    option1: Reward.StatUpgrade, // Ô 1: Tăng chỉ số
+    option2: Reward.Heal,        // Ô 2: Hồi máu
+    option3: Reward.SkillEffect, // Ô 3: Buff hiệu ứng
+    onRewardSelected: (Reward) -> Unit
+) {
+    Column(
+        modifier = Modifier.fillMaxSize().padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(
+            "CHIẾN THẮNG!",
+            style = MaterialTheme.typography.headlineLarge,
+            color = Color(0xFFFFD700), // Màu vàng
+            fontWeight = FontWeight.Bold
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text("Chọn 1 trong 3 phần thưởng:", fontSize = 18.sp)
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        // Ô 1: Tăng Chỉ Số (Màu Cam)
+        RewardCard(
+            title = "Tăng Chỉ Số",
+            desc = option1.description,
+            color = Color(0xFFFFF3E0),
+            borderColor = Color(0xFFFF9800),
+            onClick = { onRewardSelected(option1) }
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Ô 2: Hồi Phục (Màu Xanh Lá)
+        RewardCard(
+            title = "Hồi Phục",
+            desc = option2.description,
+            color = Color(0xFFE8F5E9),
+            borderColor = Color(0xFF4CAF50),
+            onClick = { onRewardSelected(option2) }
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Ô 3: Hiệu Ứng Kỹ Năng (Màu Tím)
+        RewardCard(
+            title = "Hiệu Ứng: ${option3.buff.name}",
+            desc = option3.buff.description,
+            color = Color(0xFFF3E5F5),
+            borderColor = Color(0xFF9C27B0),
+            onClick = { onRewardSelected(option3) }
+        )
+    }
+}
+
+@Composable
+fun RewardCard(title: String, desc: String, color: Color, borderColor: Color, onClick: () -> Unit) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(120.dp)
+            .border(2.dp, borderColor, RoundedCornerShape(12.dp))
+            .clickable { onClick() },
+        colors = CardDefaults.cardColors(containerColor = color),
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(4.dp)
+    ) {
+        Column(
+            modifier = Modifier.fillMaxSize().padding(16.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(title, fontWeight = FontWeight.Bold, fontSize = 20.sp)
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(desc, textAlign = TextAlign.Center, fontSize = 14.sp)
         }
     }
 }

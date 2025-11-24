@@ -1,4 +1,3 @@
-// Vị trí: com/example/gamin/MonsterBattler/data/MonsterDbHelper.kt
 package com.example.gamin.MonsterBattler.data
 
 import android.content.ContentValues
@@ -11,125 +10,197 @@ import java.util.ArrayList
 class MonsterDbHelper(context: Context) :
     SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION) {
 
-    // ... (companion object giữ nguyên)
     companion object {
-        private const val DATABASE_VERSION = 1
+        private const val DATABASE_VERSION = 14
         private const val DATABASE_NAME = "MonsterBattler.db"
 
         private const val TABLE_MONSTERS = "monsters"
         private const val KEY_NAME = "name"
-        private const val KEY_HP = "hp"
-        private const val KEY_ATK = "atk"
-        private const val KEY_DEF = "def"
-        private const val KEY_SPEED = "speed"
-        private const val KEY_TYPE = "type"
-        private const val KEY_ABILITY = "ability"
-        private const val KEY_DESCRIPTION = "description"
+
+        private const val TABLE_SKILLS = "skills"
+        private const val KEY_OWNER_NAME = "owner_name"
+        private const val KEY_SKILL_NAME = "skill_name"
+        private const val KEY_SKILL_TYPE = "skill_type"
+        private const val KEY_POWER = "power"
+        private const val KEY_PP = "pp"
+        private const val KEY_SKILL_DESC = "skill_desc"
+
+        private const val TABLE_BUFFS = "buffs"
+        private const val KEY_BUFF_NAME = "buff_name"
+        private const val KEY_BUFF_DESC = "buff_desc"
+        private const val KEY_BUFF_TARGET_TYPE = "target_type"
+        private const val KEY_BUFF_EFFECT = "effect_type"
     }
 
-    // ... (onCreate giữ nguyên)
     override fun onCreate(db: SQLiteDatabase?) {
-        val createTableSql = """
-            CREATE TABLE $TABLE_MONSTERS (
-                $KEY_NAME TEXT PRIMARY KEY,
-                $KEY_HP INTEGER,
-                $KEY_ATK INTEGER,
-                $KEY_DEF INTEGER,
-                $KEY_SPEED INTEGER,
-                $KEY_TYPE TEXT,
-                $KEY_ABILITY TEXT,
-                $KEY_DESCRIPTION TEXT
-            )
-        """.trimIndent()
-
-        db?.execSQL(createTableSql)
+        db?.execSQL("CREATE TABLE $TABLE_MONSTERS ($KEY_NAME TEXT PRIMARY KEY, hp INTEGER, atk INTEGER, def INTEGER, speed INTEGER, type TEXT, ability TEXT, description TEXT)")
+        db?.execSQL("CREATE TABLE $TABLE_SKILLS (id INTEGER PRIMARY KEY AUTOINCREMENT, $KEY_OWNER_NAME TEXT, $KEY_SKILL_NAME TEXT, $KEY_SKILL_TYPE TEXT, $KEY_POWER INTEGER, $KEY_PP INTEGER, $KEY_SKILL_DESC TEXT)")
+        db?.execSQL("CREATE TABLE $TABLE_BUFFS (id INTEGER PRIMARY KEY AUTOINCREMENT, $KEY_BUFF_NAME TEXT, $KEY_BUFF_DESC TEXT, $KEY_BUFF_TARGET_TYPE TEXT, $KEY_BUFF_EFFECT TEXT)")
         populateDatabase(db)
     }
 
-    // ... (onUpgrade giữ nguyên)
     override fun onUpgrade(db: SQLiteDatabase?, oldVersion: Int, newVersion: Int) {
+        db?.execSQL("DROP TABLE IF EXISTS $TABLE_BUFFS")
+        db?.execSQL("DROP TABLE IF EXISTS $TABLE_SKILLS")
         db?.execSQL("DROP TABLE IF EXISTS $TABLE_MONSTERS")
         onCreate(db)
     }
 
-    // ... (populateDatabase giữ nguyên)
     private fun populateDatabase(db: SQLiteDatabase?) {
-        // (Code chèn 3 quái vật...)
-        val starters = listOf(
-            Monster(
-                name = "CRISHY", hp = 45, atk = 50, def = 40, speed = 65, type = "Fire",
-                ability = "Bùng Nổ",
-                description = "Một con thằn lằn lửa nhỏ. Ngọn lửa trên đuôi nó cháy bùng lên khi nó phấn khích hoặc sẵn sàng chiến đấu."
-            ),
-            Monster(
-                name = "RHINPLINK", hp = 60, atk = 40, def = 65, speed = 35, type = "Leaf",
-                ability = "Um Tùm",
-                description = "Một sinh vật hiền lành, giống tê giác. Chiếc lá lớn trên lưng nó hấp thụ ánh sáng mặt trời để tạo ra năng lượng."
-            ),
-            Monster(
-                name = "DOREWEE", hp = 55, atk = 45, def = 50, speed = 50, type = "Water",
-                ability = "Suối Nguồn",
-                description = "Một tinh linh nước hay ngại ngùng. Nó có thể phun ra các bong bóng nước có áp suất cao khi bị đe dọa."
-            )
+        // 1. INSERT MONSTERS
+        val allMonsters = listOf(
+            Monster("CRISHY", 45, 25, 40, 65, "Fire", "Bùng Nổ", "Thằn lằn lửa."),
+            Monster("RHINPLINK", 60, 20, 65, 35, "Leaf", "Um Tùm", "Tê giác cỏ."),
+            Monster("DOREWEE", 55, 22, 50, 50, "Water", "Suối Nguồn", "Tinh linh nước."),
+            Monster("CONFLEVOUR", 55, 45, 50, 75, "Fire", "Bùng Nổ", "Evo Crishy."),
+            Monster("RHITAIN", 70, 30, 85, 45, "Leaf", "Um Tùm", "Evo Rhinplink."),
+            Monster("DOPERAMI", 75, 32, 60, 60, "Water", "Suối Nguồn", "Evo Dorewee."),
+            Monster("FLORAMONA_1", 40, 22, 26, 60, "Leaf", "Phấn Hoa", "Hoa nhỏ."),
+            Monster("FLORAMONA_2", 65, 30, 37, 70, "Leaf", "Gai Nhọn", "Hoa gai."),
+            Monster("FLORAMONA_3", 90, 40, 52, 80, "Leaf", "Nữ Hoàng", "Hoa chúa."),
+            Monster("OCTOKINETUS", 70, 35, 41, 60, "Water", "Xúc Tu", "Bạch tuộc."),
+            Monster("ORICORIO", 60, 38, 26, 85, "Fire", "Vũ Điệu", "Chim lửa."),
+            Monster("KOCOMB", 90, 25, 63, 30, "Water", "Gai Cứng", "Gai góc."),
+            Monster("STORMANTA", 75, 32, 37, 85, "Water", "Lướt Sóng", "Cá đuối."),
+            Monster("GREXCLUB", 70, 40, 45, 55, "Fire", "Nhiệt Huyết", "Khủng long."),
+            Monster("CHUB", 100, 25, 33, 30, "Fire", "Mỡ Dày", "Mập mạp."),
+            Monster("MUNCHILL", 65, 35, 52, 40, "Water", "Điềm Tĩnh", "Băng giá.")
         )
-        starters.forEach { monster ->
-            val values = ContentValues().apply {
-                put(KEY_NAME, monster.name)
-                put(KEY_HP, monster.hp)
-                put(KEY_ATK, monster.atk)
-                put(KEY_DEF, monster.def)
-                put(KEY_SPEED, monster.speed)
-                put(KEY_TYPE, monster.type)
-                put(KEY_ABILITY, monster.ability)
-                put(KEY_DESCRIPTION, monster.description)
-            }
+        allMonsters.forEach { m ->
+            val values = ContentValues().apply { put(KEY_NAME, m.name); put("hp", m.hp); put("atk", m.atk); put("def", m.def); put("speed", m.speed); put("type", m.type); put("ability", m.ability); put("description", m.description) }
             db?.insert(TABLE_MONSTERS, null, values)
+        }
+
+        // 2. INSERT SKILLS (Power 10-20, PP 10)
+
+        // CRISHY
+        insertSkillsFor(db, "CRISHY", listOf(
+            Skill("Nóng Giận", "Fire", 0, 10, 10, "Tăng Tấn Công 3 lượt."),
+            Skill("Cào", "Normal", 12, 10, 10, "Cào mạnh."),
+            Skill("Đốm Lửa", "Fire", 15, 10, 10, "Bắn lửa."),
+            Skill("Ném Đá", "Leaf", 14, 10, 10, "Ném đá.")
+        ))
+
+        // RHINPLINK
+        insertSkillsFor(db, "RHINPLINK", listOf(
+            Skill("Quang Hợp", "Leaf", 0, 10, 10, "Hồi 30 HP."),
+            Skill("Húc", "Normal", 13, 10, 10, "Húc đầu."),
+            Skill("Lá Bay", "Leaf", 14, 10, 10, "Phóng lá."),
+            Skill("Bùn Lầy", "Water", 12, 10, 10, "Ném bùn.")
+        ))
+
+        // DOREWEE
+        insertSkillsFor(db, "DOREWEE", listOf(
+            Skill("Vỏ Cứng", "Water", 0, 10, 10, "Tăng Thủ 3 lượt."),
+            Skill("Đập", "Normal", 12, 10, 10, "Đuôi đập."),
+            Skill("Bong Bóng", "Water", 14, 10, 10, "Bắn bong bóng."),
+            Skill("Hơi Nóng", "Fire", 13, 10, 10, "Thổi hơi nóng.")
+        ))
+
+        // CÁC QUÁI KHÁC
+        val fireSkills = listOf(Skill("Cào","Normal",12,10,10,""), Skill("Lửa","Fire",18,10,10,""), Skill("Buff Công","Fire",0,10,10,""), Skill("Đá","Leaf",14,10,10,""))
+        listOf("CONFLEVOUR", "ORICORIO", "GREXCLUB", "CHUB").forEach { insertSkillsFor(db, it, fireSkills) }
+
+        val leafSkills = listOf(Skill("Húc","Normal",12,10,10,""), Skill("Lá","Leaf",18,10,10,""), Skill("Hồi Máu","Leaf",0,10,10,""), Skill("Bùn","Water",14,10,10,""))
+        listOf("RHITAIN", "FLORAMONA_1", "FLORAMONA_2", "FLORAMONA_3").forEach { insertSkillsFor(db, it, leafSkills) }
+
+        val waterSkills = listOf(Skill("Đập","Normal",12,10,10,""), Skill("Nước","Water",18,10,10,""), Skill("Giáp","Water",0,10,10,""), Skill("Hơi","Fire",14,10,10,""))
+        listOf("DOPERAMI", "OCTOKINETUS", "KOCOMB", "STORMANTA", "MUNCHILL").forEach { insertSkillsFor(db, it, waterSkills) }
+
+        // 3. BUFFS
+        val buffs = listOf(
+            Buff("Búa Choáng", "10% cơ hội gây CHOÁNG khi dùng kỹ năng bất kỳ.", "Any", "STUN"),
+            Buff("Tinh Thể Lửa", "10% cơ hội gây BỎNG (Mất 10 HP/lượt) khi dùng chiêu Lửa.", "Fire", "BURN"),
+            Buff("Nước Axit", "10% cơ hội phá giáp (Giảm 1/2 Thủ) khi dùng chiêu Nước.", "Water", "BREAK_DEF"),
+            Buff("Dây Leo Gai", "10% cơ hội làm yếu (Giảm 1/2 Công) khi dùng chiêu Lá.", "Leaf", "WEAKEN")
+        )
+        buffs.forEach { buff ->
+            val values = ContentValues().apply { put(KEY_BUFF_NAME, buff.name); put(KEY_BUFF_DESC, buff.description); put(KEY_BUFF_TARGET_TYPE, buff.targetType); put(KEY_BUFF_EFFECT, buff.effectType) }
+            db?.insert(TABLE_BUFFS, null, values)
         }
     }
 
+    private fun insertSkillsFor(db: SQLiteDatabase?, ownerName: String, skills: List<Skill>) {
+        skills.forEach { s ->
+            val values = ContentValues().apply { put(KEY_OWNER_NAME, ownerName); put(KEY_SKILL_NAME, s.name); put(KEY_SKILL_TYPE, s.type); put(KEY_POWER, s.power); put(KEY_PP, s.maxPp); put(KEY_SKILL_DESC, s.description) }
+            db?.insert(TABLE_SKILLS, null, values)
+        }
+    }
 
-    /**
-     * Hàm để đọc 3 quái vật khởi đầu từ DB
-     */
-    fun getStartingMonsters(): List<Monster> {
-        val monsterList = ArrayList<Monster>()
+    fun getRandomOneBuff(): Buff? {
         val db = this.readableDatabase
+        val cursor = db.rawQuery("SELECT * FROM $TABLE_BUFFS ORDER BY RANDOM() LIMIT 1", null)
+        var buff: Buff? = null
+        if (cursor.moveToFirst()) {
+            buff = Buff(
+                name = cursor.getString(cursor.getColumnIndexOrThrow(KEY_BUFF_NAME)),
+                description = cursor.getString(cursor.getColumnIndexOrThrow(KEY_BUFF_DESC)),
+                targetType = cursor.getString(cursor.getColumnIndexOrThrow(KEY_BUFF_TARGET_TYPE)),
+                effectType = cursor.getString(cursor.getColumnIndexOrThrow(KEY_BUFF_EFFECT))
+            )
+        }
+        cursor.close()
+        return buff
+    }
 
-        val query = "SELECT * FROM $TABLE_MONSTERS WHERE $KEY_NAME IN (?, ?, ?)"
-        val cursor: Cursor? = db.rawQuery(query, arrayOf("CRISHY", "RHINPLINK", "DOREWEE"))
+    fun getStartingMonsters(): List<Monster> {
+        val list = ArrayList<Monster>()
+        val db = this.readableDatabase
+        val cursor = db.rawQuery("SELECT * FROM $TABLE_MONSTERS WHERE $KEY_NAME IN ('CRISHY','RHINPLINK','DOREWEE')", null)
+        if (cursor.moveToFirst()) { do { list.add(cursorToMonster(cursor)) } while (cursor.moveToNext()) }
+        cursor.close()
+        return list
+    }
 
-        if (cursor != null && cursor.moveToFirst()) {
+    fun getAllMonsters(): List<Monster> {
+        val list = ArrayList<Monster>()
+        val db = this.readableDatabase
+        val cursor = db.rawQuery("SELECT * FROM $TABLE_MONSTERS", null)
+        if (cursor.moveToFirst()) { do { list.add(cursorToMonster(cursor)) } while (cursor.moveToNext()) }
+        cursor.close()
+        return list
+    }
+
+    fun getMonsterByName(name: String): Monster? {
+        val db = this.readableDatabase
+        val cursor = db.rawQuery("SELECT * FROM $TABLE_MONSTERS WHERE $KEY_NAME = ?", arrayOf(name))
+        var monster: Monster? = null
+        if (cursor.moveToFirst()) { monster = cursorToMonster(cursor) }
+        cursor.close()
+        return monster
+    }
+
+    fun getSkillsForMonster(monsterName: String): List<Skill> {
+        val list = ArrayList<Skill>()
+        val db = this.readableDatabase
+        val cursor = db.rawQuery("SELECT * FROM $TABLE_SKILLS WHERE $KEY_OWNER_NAME = ?", arrayOf(monsterName))
+        if (cursor.moveToFirst()) {
             do {
-                val nameIndex = cursor.getColumnIndex(KEY_NAME)
-                val hpIndex = cursor.getColumnIndex(KEY_HP)
-                val atkIndex = cursor.getColumnIndex(KEY_ATK)
-                val defIndex = cursor.getColumnIndex(KEY_DEF)
-                val speedIndex = cursor.getColumnIndex(KEY_SPEED)
-                val typeIndex = cursor.getColumnIndex(KEY_TYPE)
-                val abilityIndex = cursor.getColumnIndex(KEY_ABILITY)
-                val descIndex = cursor.getColumnIndex(KEY_DESCRIPTION)
-
-                val monster = Monster(
-                    name = cursor.getString(nameIndex),
-                    hp = cursor.getInt(hpIndex),
-                    atk = cursor.getInt(atkIndex),
-                    def = cursor.getInt(defIndex),
-                    speed = cursor.getInt(speedIndex),
-                    type = cursor.getString(typeIndex),
-                    ability = cursor.getString(abilityIndex),
-                    description = cursor.getString(descIndex)
+                val skill = Skill(
+                    name = cursor.getString(cursor.getColumnIndexOrThrow(KEY_SKILL_NAME)),
+                    type = cursor.getString(cursor.getColumnIndexOrThrow(KEY_SKILL_TYPE)),
+                    power = cursor.getInt(cursor.getColumnIndexOrThrow(KEY_POWER)),
+                    maxPp = cursor.getInt(cursor.getColumnIndexOrThrow(KEY_PP)),
+                    currentPp = cursor.getInt(cursor.getColumnIndexOrThrow(KEY_PP)),
+                    description = cursor.getString(cursor.getColumnIndexOrThrow(KEY_SKILL_DESC))
                 )
-                monsterList.add(monster)
+                list.add(skill)
             } while (cursor.moveToNext())
         }
+        cursor.close()
+        return list
+    }
 
-        cursor?.close()
-
-        // =============================================
-        // XÓA DÒNG NÀY ĐI
-        // db.close()
-        // =============================================
-
-        return monsterList
+    private fun cursorToMonster(cursor: Cursor): Monster {
+        return Monster(
+            name = cursor.getString(cursor.getColumnIndexOrThrow(KEY_NAME)),
+            hp = cursor.getInt(cursor.getColumnIndexOrThrow("hp")),
+            atk = cursor.getInt(cursor.getColumnIndexOrThrow("atk")),
+            def = cursor.getInt(cursor.getColumnIndexOrThrow("def")),
+            speed = cursor.getInt(cursor.getColumnIndexOrThrow("speed")),
+            type = cursor.getString(cursor.getColumnIndexOrThrow("type")),
+            ability = cursor.getString(cursor.getColumnIndexOrThrow("ability")),
+            description = cursor.getString(cursor.getColumnIndexOrThrow("description"))
+        )
     }
 }
