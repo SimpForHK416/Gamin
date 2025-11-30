@@ -3,6 +3,8 @@ package com.example.gamin.tetris
 import android.app.Activity
 import android.content.Context
 import android.graphics.*
+import android.os.Handler
+import android.os.Looper
 import android.view.MotionEvent
 import android.view.SurfaceHolder
 import android.view.SurfaceView
@@ -17,6 +19,9 @@ class TetrisView(context: Context, private val difficulty: String) : SurfaceView
     private var grid = Array(gridHeight) { IntArray(gridWidth) }
     private var currentBlock = TetrisBlock.randomBlock()
     private var score = 0
+    private var level = 1
+    private var linesClearedTotal = 0
+    private val linesPerLevel = 4
 
     private var isGameOver = false
     private var initialFallDelay = 500L
@@ -49,7 +54,20 @@ class TetrisView(context: Context, private val difficulty: String) : SurfaceView
     private val TAP_THRESHOLD = 50f
     private var buttonPressed = false
 
+    private var isSoftDropping = false
+    private val SOFT_DROP_DELAY = 50L
+
     private val gameStateLock = Any()
+
+    private val inputHandler = Handler(Looper.getMainLooper())
+    private val longPressTimeout = 150L
+    private var isLongPress = false
+    private val longPressRunnable = Runnable {
+        synchronized(gameStateLock) {
+            isSoftDropping = true
+            isLongPress = true
+        }
+    }
 
     private val paintPanel = Paint().apply {
         color = Color.BLACK
@@ -63,8 +81,9 @@ class TetrisView(context: Context, private val difficulty: String) : SurfaceView
         strokeWidth = 1.5f
     }
     private val paintGhost = Paint().apply {
-        style = Paint.Style.FILL
-        alpha = 15
+        style = Paint.Style.STROKE
+        strokeWidth = 2f
+        alpha = 60
         isAntiAlias = true
     }
     private val paintText = Paint().apply {
@@ -144,6 +163,8 @@ class TetrisView(context: Context, private val difficulty: String) : SurfaceView
         isGameOver = false
         grid = Array(gridHeight) { IntArray(gridWidth) }
         score = 0
+        level = 1
+        linesClearedTotal = 0
 
         when (difficulty) {
             "Dễ" -> {
@@ -184,7 +205,8 @@ class TetrisView(context: Context, private val difficulty: String) : SurfaceView
                 synchronized(gameStateLock) {
                     if (!isGameOver) {
                         val now = System.currentTimeMillis()
-                        if (now - lastFallTime > fallDelay) {
+                        val currentDelay = if (isSoftDropping) SOFT_DROP_DELAY else fallDelay
+                        if (now - lastFallTime > currentDelay) {
                             moveDown()
                             lastFallTime = now
                         }
@@ -289,18 +311,29 @@ class TetrisView(context: Context, private val difficulty: String) : SurfaceView
             val panelRight = width - PADDING.toFloat()
             val gridBottom = (offsetY + gridHeight * cellSize).toFloat()
             val scoreRect = RectF(panelX, offsetY.toFloat(), panelRight, offsetY + 180f)
-            val nextRect = RectF(panelX, offsetY + 200f, panelRight, gridBottom)
+            val infoRect = RectF(panelX, offsetY + 200f, panelRight, gridBottom)
 
             canvas.drawRoundRect(scoreRect, 20f, 20f, paintPanel)
-            canvas.drawRoundRect(nextRect, 20f, 20f, paintPanel)
+            canvas.drawRoundRect(infoRect, 20f, 20f, paintPanel)
 
             val panelCenterX = panelX + (panelRight - panelX) / 2
+            paintText.textAlign = Paint.Align.LEFT
             canvas.drawText("Score:", panelX + PADDING, offsetY + 60f, paintText)
+            paintScore.textAlign = Paint.Align.CENTER
             canvas.drawText("$score", panelCenterX, offsetY + 130f, paintScore)
-            canvas.drawText("Next:", panelX + PADDING, offsetY + 260f, paintText)
+
+            val levelTextY = offsetY + 240f
+            paintText.textAlign = Paint.Align.LEFT
+            canvas.drawText("Level:", panelX + PADDING, levelTextY, paintText)
+            paintScore.textAlign = Paint.Align.CENTER
+            canvas.drawText("$level", panelCenterX, levelTextY + 60f, paintScore)
+
+            val nextTextY = offsetY + 360f
+            paintText.textAlign = Paint.Align.LEFT
+            canvas.drawText("Next:", panelX + PADDING, nextTextY, paintText)
 
             val nextCellSize = (panelAreaWidth * 0.9f) / 4
-            var currentY = offsetY + 300f
+            var currentY = nextTextY + 40f
             nextBlocks.forEach { block ->
                 val blockHeight = block.shape.size * nextCellSize
                 val blockWidth = block.shape[0].size * nextCellSize
@@ -414,13 +447,27 @@ class TetrisView(context: Context, private val difficulty: String) : SurfaceView
 
     private fun clearLines() {
         val newGrid = grid.filter { row -> row.any { it == 0 } }.toMutableList()
-        val linesCleared = gridHeight - newGrid.size
-        if (linesCleared > 0) {
-            repeat(linesCleared) { newGrid.add(0, IntArray(gridWidth)) }
+        val numLinesCleared = gridHeight - newGrid.size
+
+        if (numLinesCleared > 0) {
+            val basePoints = when (numLinesCleared) {
+                1 -> 40
+                2 -> 100
+                3 -> 300
+                4 -> 1200
+                else -> 0
+            }
+            score += basePoints * level
+            linesClearedTotal += numLinesCleared
+
+            val newLevel = (linesClearedTotal / linesPerLevel) + 1
+            if (newLevel > level) {
+                level = newLevel
+                fallDelay = (fallDelay * 0.9f).toLong().coerceAtLeast(maxFallDelay)
+            }
+
+            repeat(numLinesCleared) { newGrid.add(0, IntArray(gridWidth)) }
             grid = newGrid.toTypedArray()
-            score += linesCleared * 100 * linesCleared
-            val level = score / 1000
-            fallDelay = (initialFallDelay - (level * 50L)).coerceAtLeast(maxFallDelay)
         }
     }
 
@@ -434,6 +481,8 @@ class TetrisView(context: Context, private val difficulty: String) : SurfaceView
                 startX = event.x
                 startY = event.y
                 buttonPressed = false
+                isLongPress = false
+
                 if (backButtonRect.contains(event.x, event.y)) {
                     threadRunning = false
                     post {
@@ -464,21 +513,41 @@ class TetrisView(context: Context, private val difficulty: String) : SurfaceView
                         }
                     }
                 }
+
+                if (startX > offsetX && startX < (offsetX + gameAreaWidth) && !isGameOver) {
+                    inputHandler.postDelayed(longPressRunnable, longPressTimeout)
+                }
+            }
+
+            MotionEvent.ACTION_MOVE -> {
+                if (isGameOver || buttonPressed) return true
+
+                val deltaX = event.x - startX
+                val deltaY = event.y - startY
+
+                if (abs(deltaX) > TAP_THRESHOLD || abs(deltaY) > TAP_THRESHOLD) {
+                    inputHandler.removeCallbacks(longPressRunnable)
+                }
             }
 
             MotionEvent.ACTION_UP -> {
-                if (isGameOver) return true
-                if (buttonPressed) {
+                inputHandler.removeCallbacks(longPressRunnable)
+                synchronized(gameStateLock) {
+                    isSoftDropping = false
+                }
+
+                if (isGameOver || buttonPressed) {
                     buttonPressed = false
                     return true
                 }
+
                 val deltaX = event.x - startX
                 val deltaY = event.y - startY
                 if (startX > offsetX && startX < (offsetX + gameAreaWidth)) {
                     synchronized(gameStateLock) {
                         if (deltaY > SWIPE_VERTICAL_THRESHOLD && abs(deltaX) < SWIPE_HORIZONTAL_THRESHOLD) {
                             hardDrop()
-                        } else if (abs(deltaX) < TAP_THRESHOLD && abs(deltaY) < TAP_THRESHOLD) {
+                        } else if (!isLongPress && abs(deltaX) < TAP_THRESHOLD && abs(deltaY) < TAP_THRESHOLD) {
                             rotate()
                         }
                     }
