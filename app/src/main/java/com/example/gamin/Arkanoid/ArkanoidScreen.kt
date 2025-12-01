@@ -27,6 +27,10 @@ import kotlinx.coroutines.delay
 import kotlin.math.*
 import kotlin.random.Random
 
+// --- CÁC HẰNG SỐ CẤU HÌNH TỐC ĐỘ ---
+private const val SPEED_MULTIPLIER = 1.2f // Tăng tốc 20% mỗi lần chạm
+private const val MAX_BALL_SPEED = 2500f // Giới hạn tốc độ tối đa để không xuyên tường
+
 private data class ActiveEffect(
     val type: PowerUpType,
     val expirationTime: Long
@@ -118,7 +122,10 @@ private fun ArkanoidGameScreen(initialWave: Int, onBackToLevelSelect: () -> Unit
 
         var bricks by remember {
             mutableStateOf(mutableListOf<BrickState>().apply {
+                // Gọi hàm tạo gạch (đã chứa logic Random BOSS từ file kia)
                 addAll(createBrickPattern(gameWidth, wave))
+
+                // Logic thêm Sao (Star) ngẫu nhiên
                 val normalIndices = this.indices.filter { idx -> this[idx].type == BrickType.NORMAL }
                 val starCount = minOf(3, maxOf(2, (2 + Random.nextInt(2))))
                 normalIndices.shuffled().take(starCount).forEach { idx ->
@@ -132,6 +139,7 @@ private fun ArkanoidGameScreen(initialWave: Int, onBackToLevelSelect: () -> Unit
         var starsCollected by remember { mutableIntStateOf(0) }
         val REQUIRED_STARS = 2
 
+        // Hàm reset vị trí bóng và thanh trượt (chạy khi mất 1 mạng)
         val resetBallAndPaddle = {
             paddleWidth = INITIAL_PADDLE_WIDTH
             activeEffects = emptySet()
@@ -139,11 +147,12 @@ private fun ArkanoidGameScreen(initialWave: Int, onBackToLevelSelect: () -> Unit
             balls = listOf(createInitialBall(gameWidth, gameHeight, speed).copy(velocityX = 0f, velocityY = 0f))
             powerUps = emptyList()
             gameState = GameState.Ready
-            starsCollected = 0
+            // Không reset starsCollected ở đây để giữ lại số sao đã ăn trong lượt trước
             timeLeftSeconds = 180
             _timeAccumulator = 0f
         }
 
+        // Hàm tạo lại toàn bộ màn chơi (chạy khi qua màn hoặc GAME OVER)
         val setupBricksForWave: (Int) -> Unit = { w ->
             val list = createBrickPattern(gameWidth, w).toMutableList()
             val normalIndices = list.indices.filter { idx -> list[idx].type == BrickType.NORMAL }
@@ -176,6 +185,16 @@ private fun ArkanoidGameScreen(initialWave: Int, onBackToLevelSelect: () -> Unit
             val mm = s / 60
             val ss = s % 60
             return String.format("%02d:%02d", mm, ss)
+        }
+
+        // Hàm tiện ích để tăng tốc độ vector
+        fun boostVelocity(vx: Float, vy: Float): Pair<Float, Float> {
+            val currentSpeed = sqrt(vx * vx + vy * vy)
+            // Nếu tốc độ chưa đạt max thì tăng 20%
+            if (currentSpeed < MAX_BALL_SPEED) {
+                return Pair(vx * SPEED_MULTIPLIER, vy * SPEED_MULTIPLIER)
+            }
+            return Pair(vx, vy)
         }
 
         LaunchedEffect(gameState) {
@@ -218,9 +237,28 @@ private fun ArkanoidGameScreen(initialWave: Int, onBackToLevelSelect: () -> Unit
                     var vx = ball.velocityX
                     var vy = ball.velocityY
 
-                    if (newX - BALL_SIZE / 2 < 0) { vx *= -1; newX = BALL_SIZE / 2 }
-                    if (newX + BALL_SIZE / 2 > gameWidth) { vx *= -1; newX = gameWidth - BALL_SIZE / 2 }
-                    if (newY - BALL_SIZE / 2 < SCORE_PANEL_HEIGHT) { vy *= -1; newY = SCORE_PANEL_HEIGHT + BALL_SIZE / 2 }
+                    // === XỬ LÝ CHẠM TƯỜNG (CÓ TĂNG TỐC) ===
+                    if (newX - BALL_SIZE / 2 < 0) {
+                        vx = -vx
+                        newX = BALL_SIZE / 2
+                        val boosted = boostVelocity(vx, vy)
+                        vx = boosted.first
+                        vy = boosted.second
+                    }
+                    if (newX + BALL_SIZE / 2 > gameWidth) {
+                        vx = -vx
+                        newX = gameWidth - BALL_SIZE / 2
+                        val boosted = boostVelocity(vx, vy)
+                        vx = boosted.first
+                        vy = boosted.second
+                    }
+                    if (newY - BALL_SIZE / 2 < SCORE_PANEL_HEIGHT) {
+                        vy = -vy
+                        newY = SCORE_PANEL_HEIGHT + BALL_SIZE / 2
+                        val boosted = boostVelocity(vx, vy)
+                        vx = boosted.first
+                        vy = boosted.second
+                    }
                     if (newY + BALL_SIZE / 2 > gameHeight) {
                         ballsToRemove.add(ball)
                         continue
@@ -234,6 +272,7 @@ private fun ArkanoidGameScreen(initialWave: Int, onBackToLevelSelect: () -> Unit
                     )
                     val ballRect = Rect(newX - BALL_SIZE / 2, newY - BALL_SIZE / 2, newX + BALL_SIZE / 2, newY + BALL_SIZE / 2)
 
+                    // === XỬ LÝ CHẠM THANH TRƯỢT (CÓ TĂNG TỐC) ===
                     if (ballRect.overlaps(paddleRect) && vy > 0) {
                         vy *= -1
                         newY = paddleRect.top - BALL_SIZE / 2 - 1
@@ -241,8 +280,11 @@ private fun ArkanoidGameScreen(initialWave: Int, onBackToLevelSelect: () -> Unit
                         val normalized = (hitPoint / (paddleWidth / 2)).coerceIn(-1f, 1f)
                         val maxAngle = Math.toRadians(80.0)
                         val newAngle = maxAngle * normalized
+
                         val currentSpeed = sqrt(vx * vx + vy * vy)
-                        val newSpeed = currentSpeed * 1.02f
+                        // Tăng tốc 20%, giới hạn ở MAX_BALL_SPEED
+                        val newSpeed = (currentSpeed * SPEED_MULTIPLIER).coerceAtMost(MAX_BALL_SPEED)
+
                         vx = (newSpeed * sin(newAngle)).toFloat()
                         vy = -(newSpeed * cos(newAngle)).toFloat()
                     }
@@ -264,7 +306,6 @@ private fun ArkanoidGameScreen(initialWave: Int, onBackToLevelSelect: () -> Unit
                 val bricksToDestroy = mutableSetOf<Int>()
                 val newPowerUps = mutableListOf<PowerUpItem>()
 
-                // === ADDED: Reset tất cả BOSS nháy khi không bị chạm ===
                 newBricks = newBricks.map { b ->
                     if (b.type == BrickType.BOSS && b.isFlashing) b.copy(isFlashing = false) else b
                 }.toMutableList()
@@ -279,11 +320,21 @@ private fun ArkanoidGameScreen(initialWave: Int, onBackToLevelSelect: () -> Unit
                         val brick = newBricks[brickIndex]
                         if (brick.isDestroyed || bricksToDestroy.contains(brickIndex)) continue
 
+                        // === XỬ LÝ CHẠM GẠCH (CÓ TĂNG TỐC) ===
                         if (ballRect.overlaps(brick.rect)) {
                             ballHitInThisFrame = true
                             bricksToDestroy.add(brickIndex)
                             score += BRICK_SCORE * wave
-                            newBalls[ballIndex] = ball.copy(velocityY = -ball.velocityY)
+
+                            var currentVx = ball.velocityX
+                            var currentVy = -ball.velocityY // Đảo chiều Y cơ bản
+
+                            // Tăng tốc khi chạm gạch
+                            val boosted = boostVelocity(currentVx, currentVy)
+                            currentVx = boosted.first
+                            currentVy = boosted.second
+
+                            newBalls[ballIndex] = ball.copy(velocityX = currentVx, velocityY = currentVy)
 
                             if (brick.type == BrickType.EXPLOSIVE) {
                                 val hitRow = brickIndex / BRICK_COLS
@@ -303,11 +354,10 @@ private fun ArkanoidGameScreen(initialWave: Int, onBackToLevelSelect: () -> Unit
                             }
 
                             if (brick.type == BrickType.BOSS) {
-                                // Giảm hitPoints và bật nháy khi bóng chạm
                                 if (brick.hitPoints > 1) {
                                     newBricks[brickIndex] = brick.copy(
                                         hitPoints = brick.hitPoints - 1,
-                                        isFlashing = true // === ADDED: bật nháy
+                                        isFlashing = true
                                     )
                                     bricksToDestroy.remove(brickIndex)
                                 } else {
@@ -428,7 +478,11 @@ private fun ArkanoidGameScreen(initialWave: Int, onBackToLevelSelect: () -> Unit
                                 _timeAccumulator = 0f
                             }
                             GameState.GameOver -> {
-                                resetBallAndPaddle()
+                                // === LOGIC RESET KHI THUA ===
+                                lives = 3                // 1. Hồi 3 mạng
+                                score = 0                // 2. Reset điểm về 0
+                                setupBricksForWave(wave) // 3. Xếp lại gạch cho level hiện tại
+                                resetBallAndPaddle()     // 4. Reset bóng và thanh trượt
                             }
                             else -> {}
                         }
@@ -436,11 +490,10 @@ private fun ArkanoidGameScreen(initialWave: Int, onBackToLevelSelect: () -> Unit
                 }
         ) {
             bricks.filter { !it.isDestroyed }.forEach { brick ->
-                // === ADDED: đổi màu nháy cho BOSS ===
                 val brickColor = if (brick.type == BrickType.BOSS && brick.isFlashing) {
-                    Color.Yellow // Nháy vàng
+                    Color.Yellow
                 } else if (brick.type == BrickType.BOSS) {
-                    Color(0xFFFFA500) // Màu BOSS bình thường (cam)
+                    Color(0xFFFFA500)
                 } else {
                     brick.color
                 }
@@ -452,12 +505,10 @@ private fun ArkanoidGameScreen(initialWave: Int, onBackToLevelSelect: () -> Unit
                     cornerRadius = CornerRadius(8f, 8f)
                 )
 
-                // Vẽ hiệu ứng riêng cho EXPLOSIVE
                 if (brick.type == BrickType.EXPLOSIVE) {
                     drawCircle(Color.Red, radius = 10f, center = brick.rect.center)
                 }
 
-                // Vẽ sao nếu brick có star
                 if (brick.hasStar) {
                     drawCircle(Color.Yellow, radius = 12f, center = brick.rect.center)
                 }

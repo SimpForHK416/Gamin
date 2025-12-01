@@ -110,12 +110,10 @@ fun createBrickPattern(gameWidth: Float, wave: Int): List<BrickState> {
                 var powerUp: PowerUpType? = null
                 var color = colors.random()
 
-                // Xác suất tạo EXPLOSIVE
                 if (Random.nextFloat() < EXPLOSIVE_CHANCE) {
                     brickType = BrickType.EXPLOSIVE
                     color = Color.DarkGray
                 }
-                // Xác suất tạo POWER-UP
                 else if (Random.nextFloat() < POWER_UP_CHANCE) {
                     powerUp = PowerUpType.values().random()
                     color = Color.Magenta
@@ -133,39 +131,29 @@ fun createBrickPattern(gameWidth: Float, wave: Int): List<BrickState> {
         }
     }
 
-    // ===== Thêm 3 gạch BOSS nằm giữa hàng cuối =====
-    val bossRow = BRICK_ROWS - 1
 
-// Tính vị trí giữa
-    val bossCount = 3
-    val startCol = (BRICK_COLS - bossCount) / 2
+    val bossCount = if (wave == 1) 0 else ((wave - 1) * 2).coerceAtLeast(1)
 
-    for (i in 0 until bossCount) {
-        val col = startCol + i
+    val bossHP = 3 + (wave / 4)
 
-        val bossX = BRICK_PADDING + col * (brickWidth + BRICK_PADDING)
-        val bossY = TOP_PADDING_OFFSET + bossRow * (BRICK_HEIGHT + BRICK_PADDING)
 
-        val bossRect = Rect(
-            left = bossX,
-            top = bossY,
-            right = bossX + brickWidth,
-            bottom = bossY + BRICK_HEIGHT
-        )
+    val normalBrickIndices = bricks.indices.filter { bricks[it].type == BrickType.NORMAL }
 
-        bricks.add(
-            BrickState(
-                rect = bossRect,
-                color = Color(0xFFFF4500), // Màu cam BOSS
-                type = BrickType.BOSS,
-                powerUp = null,
-                hitPoints = 3,
-                isFlashing = false
-            )
+    val selectedIndices = normalBrickIndices.shuffled().take(bossCount)
+
+    val finalBricks = bricks.toMutableList()
+    for (index in selectedIndices) {
+        val originalBrick = finalBricks[index]
+        finalBricks[index] = originalBrick.copy(
+            type = BrickType.BOSS,
+            color = Color(0xFFFF4500),
+            hitPoints = bossHP,
+            powerUp = null,
+            isFlashing = false
         )
     }
 
-    return bricks
+    return finalBricks
 }
 
 
