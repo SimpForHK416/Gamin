@@ -20,7 +20,7 @@ Các game hiện tại để chọn, nếu chọn thì chỉnh readme.md này v�
 
 9.Snake
 
-10.Tetris
+10.Tetris(had)
 
 11.WhackAMole
 
