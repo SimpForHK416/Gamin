@@ -37,6 +37,7 @@ sealed class GameState {
     object WaveClear : GameState()
     object GameOver : GameState()
     object TimeUp : GameState()
+    object Paused : GameState()
 }
 
 enum class BrickType {

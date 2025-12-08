@@ -23,13 +23,18 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.gamin.Arkanoid.database.AppDatabase
+import com.example.gamin.Arkanoid.database.ScoreRecord
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlin.math.*
 import kotlin.random.Random
 
 // --- CÁC HẰNG SỐ CẤU HÌNH TỐC ĐỘ ---
-private const val SPEED_MULTIPLIER = 1.2f // Tăng tốc 20% mỗi lần chạm
-private const val MAX_BALL_SPEED = 2500f // Giới hạn tốc độ tối đa để không xuyên tường
+private const val SPEED_MULTIPLIER = 1.2f
+private const val MAX_BALL_SPEED = 2500f
 
 private data class ActiveEffect(
     val type: PowerUpType,
@@ -102,6 +107,11 @@ private fun ArkanoidGameScreen(initialWave: Int, onBackToLevelSelect: () -> Unit
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val gameWidth = constraints.maxWidth.toFloat()
         val gameHeight = constraints.maxHeight.toFloat()
+        val context = LocalContext.current // Lấy context
+
+        // KHỞI TẠO DATABASE DAO
+        val dbDao = remember { AppDatabase.getDatabase(context).scoreDao() }
+        var showLeaderboard by remember { mutableStateOf<Int?>(null) }
 
         var paddle by remember { mutableStateOf(PaddleState(gameWidth / 2)) }
         var paddleWidth by remember { mutableFloatStateOf(INITIAL_PADDLE_WIDTH) }
@@ -116,16 +126,16 @@ private fun ArkanoidGameScreen(initialWave: Int, onBackToLevelSelect: () -> Unit
         var timeLeftSeconds by remember { mutableIntStateOf(180) }
         var _timeAccumulator by remember { mutableStateOf(0f) }
 
+
+        // BỎ derivedStateOf timeSpent = remember { derivedStateOf { 180 - timeLeftSeconds } }
+
         var balls by remember {
             mutableStateOf(listOf(createInitialBall(gameWidth, gameHeight, INITIAL_BALL_SPEED).copy(velocityX = 0f, velocityY = 0f)))
         }
 
         var bricks by remember {
             mutableStateOf(mutableListOf<BrickState>().apply {
-                // Gọi hàm tạo gạch (đã chứa logic Random BOSS từ file kia)
                 addAll(createBrickPattern(gameWidth, wave))
-
-                // Logic thêm Sao (Star) ngẫu nhiên
                 val normalIndices = this.indices.filter { idx -> this[idx].type == BrickType.NORMAL }
                 val starCount = minOf(3, maxOf(2, (2 + Random.nextInt(2))))
                 normalIndices.shuffled().take(starCount).forEach { idx ->
@@ -181,6 +191,32 @@ private fun ArkanoidGameScreen(initialWave: Int, onBackToLevelSelect: () -> Unit
             resetBallAndPaddle()
         }
 
+        // HÀM LƯU ĐIỂM (Bỏ Time)
+        val saveCurrentWaveScore: () -> Unit = {
+            if (score > 0) {
+                val waveIndex = wave.coerceIn(1, 10)
+                var newRecord = ScoreRecord()
+
+                newRecord = when(waveIndex) {
+                    1 -> newRecord.copy(wave1Score = score)
+                    2 -> newRecord.copy(wave2Score = score)
+                    3 -> newRecord.copy(wave3Score = score)
+                    4 -> newRecord.copy(wave4Score = score)
+                    5 -> newRecord.copy(wave5Score = score)
+                    6 -> newRecord.copy(wave6Score = score)
+                    7 -> newRecord.copy(wave7Score = score)
+                    8 -> newRecord.copy(wave8Score = score)
+                    9 -> newRecord.copy(wave9Score = score)
+                    10 -> newRecord.copy(wave10Score = score)
+                    else -> newRecord
+                }
+
+                CoroutineScope(Dispatchers.IO).launch {
+                    dbDao.insertScore(newRecord)
+                }
+            }
+        }
+
         fun formatTime(s: Int): String {
             val mm = s / 60
             val ss = s % 60
@@ -190,7 +226,6 @@ private fun ArkanoidGameScreen(initialWave: Int, onBackToLevelSelect: () -> Unit
         // Hàm tiện ích để tăng tốc độ vector
         fun boostVelocity(vx: Float, vy: Float): Pair<Float, Float> {
             val currentSpeed = sqrt(vx * vx + vy * vy)
-            // Nếu tốc độ chưa đạt max thì tăng 20%
             if (currentSpeed < MAX_BALL_SPEED) {
                 return Pair(vx * SPEED_MULTIPLIER, vy * SPEED_MULTIPLIER)
             }
@@ -213,6 +248,7 @@ private fun ArkanoidGameScreen(initialWave: Int, onBackToLevelSelect: () -> Unit
                     _timeAccumulator -= dec.toFloat()
                 }
                 if (timeLeftSeconds <= 0) {
+                    saveCurrentWaveScore() // LƯU ĐIỂM KHI HẾT GIỜ
                     gameState = GameState.GameOver
                     break
                 }
@@ -295,6 +331,7 @@ private fun ArkanoidGameScreen(initialWave: Int, onBackToLevelSelect: () -> Unit
                 if (newBalls.isEmpty() && balls.isNotEmpty()) {
                     lives--
                     if (lives <= 0) {
+                        saveCurrentWaveScore() // LƯU ĐIỂM KHI GAME OVER
                         gameState = GameState.GameOver
                     } else {
                         resetBallAndPaddle()
@@ -446,6 +483,7 @@ private fun ArkanoidGameScreen(initialWave: Int, onBackToLevelSelect: () -> Unit
                 powerUps = activePowerUps
 
                 if (bricks.all { it.isDestroyed }) {
+                    saveCurrentWaveScore() // LƯU ĐIỂM KHI QUA MÀN
                     gameState = GameState.WaveClear
                     break
                 }
@@ -478,11 +516,10 @@ private fun ArkanoidGameScreen(initialWave: Int, onBackToLevelSelect: () -> Unit
                                 _timeAccumulator = 0f
                             }
                             GameState.GameOver -> {
-                                // === LOGIC RESET KHI THUA ===
-                                lives = 3                // 1. Hồi 3 mạng
-                                score = 0                // 2. Reset điểm về 0
-                                setupBricksForWave(wave) // 3. Xếp lại gạch cho level hiện tại
-                                resetBallAndPaddle()     // 4. Reset bóng và thanh trượt
+                                lives = 3
+                                score = 0
+                                setupBricksForWave(wave)
+                                resetBallAndPaddle()
                             }
                             else -> {}
                         }
@@ -537,13 +574,19 @@ private fun ArkanoidGameScreen(initialWave: Int, onBackToLevelSelect: () -> Unit
             }
         }
 
+        val onShowLeaderboardClick: () -> Unit = {
+            showLeaderboard = wave
+            gameState = GameState.Paused // Tạm dừng game khi xem bảng điểm
+        }
+
         ArkanoidHud(
             score = score,
             lives = lives,
             wave = wave,
             stars = starsCollected,
             timeText = formatTime(timeLeftSeconds),
-            onBackClick = onBackToLevelSelect
+            onBackClick = onBackToLevelSelect,
+            onShowLeaderboardClick = onShowLeaderboardClick
         )
 
         ArkanoidStatusText(
@@ -551,16 +594,64 @@ private fun ArkanoidGameScreen(initialWave: Int, onBackToLevelSelect: () -> Unit
             countdown = countdown
         )
 
+        // LOGIC KHI KẾT THÚC MÀN CHƠI (WaveClear)
         if (gameState == GameState.WaveClear) {
             AlertDialog(
                 onDismissRequest = { },
-                title = { Text("Kết thúc màn $wave") },
-                text = { Text("Bạn thu thập $starsCollected ngôi sao trong màn này.\nChạm tiếp để qua màn!") },
+                title = { Text("Kết thúc màn $wave", fontWeight = FontWeight.Bold) },
+                text = { Text("Bạn thu thập $starsCollected ngôi sao trong màn này.\nĐiểm: $score") },
+
+                // SỬ DỤNG confirmButton để chứa tất cả các nút
                 confirmButton = {
-                    Button(onClick = {
-                        nextWave()
-                        gameState = GameState.Ready
-                    }) { Text("TIẾP TỤC") }
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        Button(
+                            onClick = {
+                                // GỌI HÀM QUAY LẠI CHỌN MÀN
+                                onBackToLevelSelect()
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("QUAY LẠI CHỌN MÀN")
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            // Nút TIẾP TỤC (Tương đương confirmButton cũ)
+                            Button(
+                                onClick = {
+                                    nextWave()
+                                    gameState = GameState.Ready
+                                },
+                                modifier = Modifier.weight(1f).padding(end = 4.dp)
+                            ) {
+                                Text("TIẾP TỤC")
+                            }
+
+                            Button(
+                                onClick = {
+                                    showLeaderboard = wave
+                                    gameState = GameState.Paused
+                                },
+                                modifier = Modifier.weight(1f).padding(start = 4.dp)
+                            ) {
+                                Text("TOP SCORE")
+                            }
+                        }
+                    }
+                },
+                dismissButton = {}
+            )
+        }
+
+        // HIỂN THỊ MÀN HÌNH BẢNG ĐIỂM (Leaderboard)
+        if (showLeaderboard != null) {
+            LeaderboardScreen(
+                wave = showLeaderboard!!,
+                dbDao = dbDao,
+                onDismiss = {
+                    showLeaderboard = null
+                    if (gameState == GameState.Paused) gameState = GameState.Ready
                 }
             )
         }
@@ -574,7 +665,8 @@ private fun BoxScope.ArkanoidHud(
     wave: Int,
     stars: Int,
     timeText: String,
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
+    onShowLeaderboardClick: () -> Unit
 ) {
     Row(
         modifier = Modifier
@@ -592,6 +684,14 @@ private fun BoxScope.ArkanoidHud(
             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
         ) {
             Text("QUAY LẠI", style = MaterialTheme.typography.bodySmall)
+        }
+        Button(
+            onClick = onShowLeaderboardClick,
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00796B)),
+            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+            modifier = Modifier.padding(start = 8.dp)
+        ) {
+            Text("TOP SCORE", style = MaterialTheme.typography.bodySmall)
         }
         Text(
             text = "Score: $score | Lives: $lives | Wave: $wave | ⭐ $stars | ⏱ $timeText",
