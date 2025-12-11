@@ -1,4 +1,3 @@
-// Vị trí: com/example/gamin/MonsterBattler/ui/BlockadeScreen.kt
 package com.example.gamin.MonsterBattler.ui
 
 import androidx.compose.foundation.layout.Arrangement

@@ -40,10 +40,6 @@ fun IntroScreen(
                 contentScale = ContentScale.Fit
             )
         }
-
-        // 2. Hộp thoại
-        // Lưu ý: Không cần .clickable ở Box ngoài cùng hay Column nữa
-        // DialogueBox sẽ tự bắt sự kiện click
         Column(
             modifier = Modifier
                 .fillMaxSize()

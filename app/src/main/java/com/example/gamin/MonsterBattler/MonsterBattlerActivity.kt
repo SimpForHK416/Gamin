@@ -1,149 +1,267 @@
 package com.example.gamin.MonsterBattler
 
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Surface
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import com.example.gamin.MonsterBattler.data.Buff
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.gamin.MonsterBattler.data.Monster
 import com.example.gamin.MonsterBattler.data.MonsterDbHelper
 import com.example.gamin.MonsterBattler.data.Reward
-import com.example.gamin.MonsterBattler.data.Skill
 import com.example.gamin.MonsterBattler.ui.BattleScreen
-import com.example.gamin.MonsterBattler.ui.BuffSelectionScreen
+import com.example.gamin.MonsterBattler.ui.BattleState
+import com.example.gamin.MonsterBattler.ui.BattleViewModel
+import com.example.gamin.MonsterBattler.ui.BuffSelectionScreenModified
+import com.example.gamin.MonsterBattler.ui.GameModeScreen
+import com.example.gamin.MonsterBattler.ui.GameViewModel
 import com.example.gamin.MonsterBattler.ui.GauntletMapScreen
 import com.example.gamin.MonsterBattler.ui.IntroScreen
+import com.example.gamin.MonsterBattler.ui.MajorUpgradeScreen
+import com.example.gamin.MonsterBattler.ui.MysteryScreen
 import com.example.gamin.MonsterBattler.ui.PickingScreen
+import com.example.gamin.MonsterBattler.ui.TeamManagementScreen
 import com.example.gamin.ui.theme.GaminTheme
 
 class MonsterBattlerActivity : ComponentActivity() {
 
-    private val dbHelper by lazy { MonsterDbHelper(this.applicationContext) }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val context = this.applicationContext
+
         setContent {
             GaminTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
+                    val gameViewModel: GameViewModel = viewModel()
+                    LaunchedEffect(Unit) { gameViewModel.init(context) }
+                    val gameState by gameViewModel.gameState.collectAsState()
 
-                    var currentScreen by remember { mutableStateOf("INTRO") }
-                    var playerMonsterName by remember { mutableStateOf("") }
-                    var playerMonster: Monster? by remember { mutableStateOf(null) }
-                    var playerSkills by remember { mutableStateOf(emptyList<Skill>()) }
-                    var playerCurrentHp by remember { mutableIntStateOf(0) }
+                    val battleViewModel: BattleViewModel = viewModel()
+                    val battleState by battleViewModel.uiState.collectAsState()
 
-                    var collectedBuffs by remember { mutableStateOf(listOf<Buff>()) }
-                    var optionStat by remember { mutableStateOf<Reward.StatUpgrade?>(null) }
-                    var optionHeal by remember { mutableStateOf<Reward.Heal?>(null) }
-                    var optionBuff by remember { mutableStateOf<Reward.SkillEffect?>(null) }
+                    val dbHelper = remember { MonsterDbHelper(context) }
 
-                    var mapData by remember { mutableStateOf(MapGenerator.generateMap()) }
-                    var currentNode by remember { mutableStateOf<MapNode?>(null) }
-                    var enemyMonster: Monster? by remember { mutableStateOf(null) }
-                    var enemySkills by remember { mutableStateOf(emptyList<Skill>()) }
+                    // Dialog Logic
+                    var pendingReward by remember { mutableStateOf<Reward?>(null) }
+                    var showForceSwapDialog by remember { mutableStateOf(false) }
 
-                    val starters = remember { dbHelper.getStartingMonsters() }
-
-                    fun resetGame() {
-                        playerMonsterName = ""
-                        playerMonster = null
-                        playerSkills = emptyList()
-                        collectedBuffs = emptyList()
-                        playerCurrentHp = 0
-                        mapData = MapGenerator.generateMap()
-                        currentNode = null
-                        currentScreen = "INTRO"
-                    }
-
-                    when (currentScreen) {
-                        "INTRO" -> IntroScreen(onIntroFinished = { currentScreen = "PICKING" })
-                        "PICKING" -> PickingScreen(
-                            monsters = starters,
-                            onMonsterSelected = { monsterName ->
-                                playerMonsterName = monsterName
-                                playerMonster = dbHelper.getMonsterByName(monsterName)
-                                playerSkills = dbHelper.getSkillsForMonster(monsterName)
-                                playerCurrentHp = playerMonster!!.hp
-                                currentScreen = "MAP"
-                            }
-                        )
-                        "MAP" -> GauntletMapScreen(
-                            mapLevels = mapData,
-                            currentNode = currentNode,
-                            onNodeClicked = { node ->
-                                if (node.type == NodeType.BATTLE || node.type == NodeType.ELITE || node.type == NodeType.BOSS) {
-                                    val allMonsters = dbHelper.getAllMonsters()
-                                    val bannedNames = listOf("CRISHY", "CONFLEVOUR", "RHINPLINK", "RHITAIN", "DOREWEE", "DOPERAMI")
-                                    val wildEnemies = allMonsters.filter { !bannedNames.contains(it.name) }
-                                    if (wildEnemies.isNotEmpty()) {
-                                        val randomEnemy = wildEnemies.random()
-                                        enemyMonster = randomEnemy
-                                        enemySkills = dbHelper.getSkillsForMonster(randomEnemy.name)
-                                        currentNode = node
-                                        currentScreen = "BATTLE"
-                                    }
-                                } else if (node.type == NodeType.MYSTERY) { currentNode = node }
-                            }
-                        )
-                        "BATTLE" -> {
-                            if (playerMonster != null && enemyMonster != null) {
-                                BattleScreen(
-                                    playerMonster = playerMonster!!,
-                                    enemyMonster = enemyMonster!!,
-                                    playerSkills = playerSkills,
-                                    enemySkills = enemySkills,
-                                    activeBuffs = collectedBuffs,
-                                    opponentDialogue = "Ta là ${enemyMonster!!.name}!",
-                                    initialPlayerHp = playerCurrentHp,
-                                    onBattleEnd = { isWin, remainingHp ->
-                                        if (isWin) {
-                                            playerCurrentHp = remainingHp
-                                            val statTypes = listOf("HP", "Atk", "Def", "Speed")
-                                            val randomStat = statTypes.random()
-                                            val amount = if (randomStat == "HP") 20 else 10
-                                            optionStat = Reward.StatUpgrade(randomStat, amount, "Tăng $amount $randomStat cho ${playerMonster!!.name}")
-                                            optionHeal = Reward.Heal(50, "Hồi phục 50% HP")
-                                            val randomBuff = dbHelper.getRandomOneBuff()
-                                            optionBuff = if(randomBuff != null) Reward.SkillEffect(randomBuff) else null
-                                            currentScreen = "BUFF_SELECT"
-                                        } else { resetGame() }
-                                    }
-                                )
+                    // Lắng nghe xem Player có chết không để hiện Dialog đổi người
+                    LaunchedEffect(battleState.battleState) {
+                        if (battleState.battleState == BattleState.PLAYER_FAINTED) {
+                            val survivors = gameViewModel.getSurvivors()
+                            if (survivors.isNotEmpty()) {
+                                showForceSwapDialog = true
+                            } else {
+                                battleViewModel.triggerDefeat() // Hết quái -> Thua
                             }
                         }
-                        "BUFF_SELECT" -> {
-                            if (optionStat != null && optionHeal != null && optionBuff != null) {
-                                BuffSelectionScreen(
-                                    option1 = optionStat!!, option2 = optionHeal!!, option3 = optionBuff!!,
-                                    onRewardSelected = { reward ->
-                                        when(reward) {
-                                            is Reward.StatUpgrade -> {
-                                                playerMonster = when(reward.statName) {
-                                                    "HP" -> playerMonster!!.copy(hp = playerMonster!!.hp + reward.value)
-                                                    "Atk" -> playerMonster!!.copy(atk = playerMonster!!.atk + reward.value)
-                                                    "Def" -> playerMonster!!.copy(def = playerMonster!!.def + reward.value)
-                                                    "Speed" -> playerMonster!!.copy(speed = playerMonster!!.speed + reward.value)
-                                                    else -> playerMonster
-                                                }
-                                                if(reward.statName == "HP") playerCurrentHp += reward.value
+                    }
+
+                    // Cập nhật HP vào GameViewModel mỗi khi bị đánh
+                    LaunchedEffect(battleState.playerHp) {
+                        if (gameState.currentScreen == "BATTLE" && gameState.playerMonster != null) {
+                            gameViewModel.updateHpInBattle(battleState.playerHp)
+                        }
+                    }
+
+                    // --- DIALOG ĐỔI QUÁI BẮT BUỘC (KHI CHẾT) ---
+                    if (showForceSwapDialog) {
+                        val survivors = remember(gameState.teamHp) { gameViewModel.getSurvivors() }
+                        SwitchMonsterDialog(
+                            title = "Đồng đội đã gục ngã!",
+                            availableMonsters = survivors,
+                            onDismiss = { /* Không cho tắt, bắt buộc chọn */ },
+                            onMonsterSelected = { monster ->
+                                gameViewModel.switchActiveMonsterInBattle(monster)
+                                battleViewModel.replaceFaintedMonster(monster, gameViewModel.getSkills(monster.name))
+                                showForceSwapDialog = false
+                            }
+                        )
+                    }
+
+                    // --- DIALOG CHỌN QUÁI ĐỂ BUFF ---
+                    if (pendingReward != null) {
+                        TargetSelectionDialog(
+                            team = gameState.team,
+                            reward = pendingReward!!,
+                            onDismiss = { pendingReward = null },
+                            onTargetSelected = { target ->
+                                gameViewModel.applyReward(pendingReward!!, target)
+                                pendingReward = null
+                            }
+                        )
+                    }
+
+                    when (gameState.currentScreen) {
+                        "INTRO" -> IntroScreen(onIntroFinished = { gameViewModel.onIntroFinished() })
+                        "GAME_MODE" -> GameModeScreen(onModeSelected = { isDemo -> gameViewModel.selectGameMode(isDemo) })
+                        "PICKING" -> PickingScreen(
+                            monsters = remember { gameViewModel.getStarters() },
+                            onMonsterSelected = { name -> gameViewModel.pickStarter(name) }
+                        )
+                        "MAP" -> {
+                            Box(modifier = Modifier.fillMaxSize()) {
+                                GauntletMapScreen(
+                                    mapLevels = gameState.mapData,
+                                    currentNode = gameState.currentNode,
+                                    onNodeClicked = { node ->
+                                        gameViewModel.onNodeClicked(node)
+                                        if (node.type == NodeType.BATTLE || node.type == NodeType.ELITE || node.type == NodeType.BOSS) {
+                                            val encounter = EncounterManager.generateEncounter(node.type, dbHelper)
+                                            if (encounter != null && gameState.playerMonster != null) {
+                                                val (enemy, enemySkills) = encounter
+                                                battleViewModel.initBattle(
+                                                    player = gameState.playerMonster!!,
+                                                    enemy = enemy,
+                                                    pSkills = gameState.playerSkills,
+                                                    eSkills = enemySkills,
+                                                    buffs = gameState.collectedBuffs,
+                                                    currentHp = gameState.currentHp,
+                                                    isBoss = (node.type == NodeType.BOSS),
+                                                    onEnd = { isWin, remainingHp ->
+                                                        if (isWin) gameViewModel.onBattleWin(remainingHp, node.type)
+                                                        else gameViewModel.onBattleLost()
+                                                    }
+                                                )
                                             }
-                                            is Reward.Heal -> {
-                                                val healAmount = (playerMonster!!.hp * 0.5).toInt()
-                                                playerCurrentHp = (playerCurrentHp + healAmount).coerceAtMost(playerMonster!!.hp)
-                                            }
-                                            is Reward.SkillEffect -> collectedBuffs = collectedBuffs + reward.buff
                                         }
-                                        currentScreen = "MAP"
                                     }
                                 )
+                                FloatingActionButton(
+                                    onClick = { gameViewModel.openTeamManagement() },
+                                    modifier = Modifier.align(Alignment.BottomEnd).padding(24.dp),
+                                    containerColor = Color(0xFF009688)
+                                ) {
+                                    Icon(imageVector = Icons.Default.Menu, contentDescription = "Team", tint = Color.White)
+                                }
                             }
+                        }
+                        "TEAM_MANAGEMENT" -> TeamManagementScreen(
+                            team = gameState.team,
+                            onSwap = { i1, i2 -> gameViewModel.swapTeamMembers(i1, i2) },
+                            onBack = { gameViewModel.closeTeamManagement() }
+                        )
+                        "MYSTERY" -> MysteryScreen(currentHp = gameState.currentHp, maxHp = gameState.playerMonster!!.hp, onFinished = { newHp -> gameViewModel.onMysteryFinished(newHp) })
+
+                        "BATTLE" -> {
+                            // Lọc danh sách quái còn sống để truyền vào nút đổi người
+                            val livingTeam = remember(gameState.teamHp) { gameViewModel.getSurvivors() }
+
+                            BattleScreen(
+                                viewModel = battleViewModel,
+                                team = livingTeam,
+                                onSwitchMonster = { newMonster ->
+                                    // Đổi chủ động (Mất lượt)
+                                    gameViewModel.switchActiveMonsterInBattle(newMonster)
+                                    battleViewModel.switchPlayerMonster(newMonster, gameViewModel.getSkills(newMonster.name))
+                                }
+                            )
+                        }
+
+                        "BUFF_SELECT" -> {
+                            BuffSelectionScreenModified(
+                                option1 = gameState.optionStat,
+                                option2 = gameState.optionHeal,
+                                option3 = gameState.optionBuff,
+                                pickCount = gameState.rewardsToPick,
+                                onRewardSelected = { reward ->
+                                    if (gameState.team.size > 1) pendingReward = reward
+                                    else gameViewModel.applyReward(reward, gameState.team[0])
+                                }
+                            )
+                        }
+
+                        "MAJOR_UPGRADE" -> {
+                            val currentTeam = gameState.team
+                            MajorUpgradeScreen(
+                                currentTeam = currentTeam,
+                                availableStarters = remember { gameViewModel.getAvailableRecruits() },
+                                onUpgradeFinished = { newTeam -> gameViewModel.onMajorUpgradeFinished(newTeam) }
+                            )
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+// Dialog dùng chung cho việc đổi quái khi chết
+@Composable
+fun SwitchMonsterDialog(
+    title: String,
+    availableMonsters: List<Monster>,
+    onDismiss: () -> Unit,
+    onMonsterSelected: (Monster) -> Unit
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Color.White)) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(title, fontWeight = FontWeight.Bold, fontSize = 18.sp, modifier = Modifier.padding(bottom = 12.dp))
+                if (availableMonsters.isEmpty()) {
+                    Text("Không còn ai...", color = Color.Gray)
+                } else {
+                    LazyColumn {
+                        items(availableMonsters) { monster ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth().clickable { onMonsterSelected(monster) }.padding(vertical = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(monster.name, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                                // Text("HP: ${monster.hp}", color = Color.Gray) // Có thể hiện HP thực tế nếu lấy từ map
+                            }
+                            Divider()
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun TargetSelectionDialog(
+    team: List<Monster>,
+    reward: Reward,
+    onDismiss: () -> Unit,
+    onTargetSelected: (Monster) -> Unit
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Color.White)) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text("Chọn mục tiêu nhận thưởng:", fontWeight = FontWeight.Bold, fontSize = 18.sp, modifier = Modifier.padding(bottom = 12.dp))
+                val desc = when(reward) {
+                    is Reward.StatUpgrade -> reward.description
+                    is Reward.Heal -> reward.description
+                    is Reward.SkillEffect -> "Nhận hiệu ứng: ${reward.buff.name}"
+                }
+                Text(desc, color = Color.Blue, modifier = Modifier.padding(bottom = 16.dp))
+                LazyColumn {
+                    items(team) { monster ->
+                        Row(modifier = Modifier.fillMaxWidth().clickable { onTargetSelected(monster) }.padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Text(monster.name, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                            Text("HP: ${monster.hp}", color = Color.Gray)
+                        }
+                        Divider()
+                    }
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Button(onClick = onDismiss, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = Color.Gray)) { Text("Hủy") }
             }
         }
     }

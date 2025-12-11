@@ -35,7 +35,7 @@ val PathColorInactive = Color(0xFF555555)
 
 @Composable
 fun GauntletMapScreen(
-    mapLevels: List<List<MapNode>>, // <-- THAY ĐỔI: Nhận map từ bên ngoài
+    mapLevels: List<List<MapNode>>,
     currentNode: MapNode?,
     onNodeClicked: (MapNode) -> Unit
 ) {

@@ -11,7 +11,8 @@ class MonsterDbHelper(context: Context) :
     SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION) {
 
     companion object {
-        private const val DATABASE_VERSION = 14
+        // Tăng version lên 15 để cập nhật lại dữ liệu mới
+        private const val DATABASE_VERSION = 15
         private const val DATABASE_NAME = "MonsterBattler.db"
 
         private const val TABLE_MONSTERS = "monsters"
@@ -36,6 +37,8 @@ class MonsterDbHelper(context: Context) :
         db?.execSQL("CREATE TABLE $TABLE_MONSTERS ($KEY_NAME TEXT PRIMARY KEY, hp INTEGER, atk INTEGER, def INTEGER, speed INTEGER, type TEXT, ability TEXT, description TEXT)")
         db?.execSQL("CREATE TABLE $TABLE_SKILLS (id INTEGER PRIMARY KEY AUTOINCREMENT, $KEY_OWNER_NAME TEXT, $KEY_SKILL_NAME TEXT, $KEY_SKILL_TYPE TEXT, $KEY_POWER INTEGER, $KEY_PP INTEGER, $KEY_SKILL_DESC TEXT)")
         db?.execSQL("CREATE TABLE $TABLE_BUFFS (id INTEGER PRIMARY KEY AUTOINCREMENT, $KEY_BUFF_NAME TEXT, $KEY_BUFF_DESC TEXT, $KEY_BUFF_TARGET_TYPE TEXT, $KEY_BUFF_EFFECT TEXT)")
+
+        // Gọi hàm khởi tạo dữ liệu
         populateDatabase(db)
     }
 
@@ -46,83 +49,129 @@ class MonsterDbHelper(context: Context) :
         onCreate(db)
     }
 
+    // === PHẦN ĐƯỢC CÂN BẰNG LẠI (EASY MODE) ===
     private fun populateDatabase(db: SQLiteDatabase?) {
-        // 1. INSERT MONSTERS
-        val allMonsters = listOf(
-            Monster("CRISHY", 45, 25, 40, 65, "Fire", "Bùng Nổ", "Thằn lằn lửa."),
-            Monster("RHINPLINK", 60, 20, 65, 35, "Leaf", "Um Tùm", "Tê giác cỏ."),
-            Monster("DOREWEE", 55, 22, 50, 50, "Water", "Suối Nguồn", "Tinh linh nước."),
-            Monster("CONFLEVOUR", 55, 45, 50, 75, "Fire", "Bùng Nổ", "Evo Crishy."),
-            Monster("RHITAIN", 70, 30, 85, 45, "Leaf", "Um Tùm", "Evo Rhinplink."),
-            Monster("DOPERAMI", 75, 32, 60, 60, "Water", "Suối Nguồn", "Evo Dorewee."),
-            Monster("FLORAMONA_1", 40, 22, 26, 60, "Leaf", "Phấn Hoa", "Hoa nhỏ."),
-            Monster("FLORAMONA_2", 65, 30, 37, 70, "Leaf", "Gai Nhọn", "Hoa gai."),
-            Monster("FLORAMONA_3", 90, 40, 52, 80, "Leaf", "Nữ Hoàng", "Hoa chúa."),
-            Monster("OCTOKINETUS", 70, 35, 41, 60, "Water", "Xúc Tu", "Bạch tuộc."),
-            Monster("ORICORIO", 60, 38, 26, 85, "Fire", "Vũ Điệu", "Chim lửa."),
-            Monster("KOCOMB", 90, 25, 63, 30, "Water", "Gai Cứng", "Gai góc."),
-            Monster("STORMANTA", 75, 32, 37, 85, "Water", "Lướt Sóng", "Cá đuối."),
-            Monster("GREXCLUB", 70, 40, 45, 55, "Fire", "Nhiệt Huyết", "Khủng long."),
-            Monster("CHUB", 100, 25, 33, 30, "Fire", "Mỡ Dày", "Mập mạp."),
-            Monster("MUNCHILL", 65, 35, 52, 40, "Water", "Điềm Tĩnh", "Băng giá.")
-        )
-        allMonsters.forEach { m ->
-            val values = ContentValues().apply { put(KEY_NAME, m.name); put("hp", m.hp); put("atk", m.atk); put("def", m.def); put("speed", m.speed); put("type", m.type); put("ability", m.ability); put("description", m.description) }
-            db?.insert(TABLE_MONSTERS, null, values)
-        }
+        db?.beginTransaction()
+        try {
+            // --- INSERT MONSTERS ---
+            val allMonsters = listOf(
+                // 1. STARTER (BUFF NHẸ ĐỂ DỄ THỞ HƠN)
+                // Tăng HP từ 45->60, Atk 25->30 để đi ải đầu không bị sốc damage
+                Monster("CRISHY", 60, 30, 40, 65, "Fire", "Bùng Nổ", "Thằn lằn lửa."),
+                Monster("RHINPLINK", 75, 25, 65, 35, "Leaf", "Um Tùm", "Tê giác cỏ."),
+                Monster("DOREWEE", 65, 28, 50, 50, "Water", "Suối Nguồn", "Tinh linh nước."),
 
-        // 2. INSERT SKILLS (Power 10-20, PP 10)
+                // 2. EVOLVED STARTER (Dùng cho người chơi sau này - Mạnh)
+                Monster("CONFLEVOUR", 80, 50, 55, 75, "Fire", "Bùng Nổ", "Evo Crishy."),
+                Monster("RHITAIN", 100, 40, 90, 45, "Leaf", "Um Tùm", "Evo Rhinplink."),
+                Monster("DOPERAMI", 90, 45, 65, 60, "Water", "Suối Nguồn", "Evo Dorewee."),
 
-        // CRISHY
-        insertSkillsFor(db, "CRISHY", listOf(
-            Skill("Nóng Giận", "Fire", 0, 10, 10, "Tăng Tấn Công 3 lượt."),
-            Skill("Cào", "Normal", 12, 10, 10, "Cào mạnh."),
-            Skill("Đốm Lửa", "Fire", 15, 10, 10, "Bắn lửa."),
-            Skill("Ném Đá", "Leaf", 14, 10, 10, "Ném đá.")
-        ))
+                // 3. QUÁI VẬT HOANG DÃ (NERF MẠNH ĐỂ KHÔNG ONE-SHOT NGƯỜI CHƠI)
 
-        // RHINPLINK
-        insertSkillsFor(db, "RHINPLINK", listOf(
-            Skill("Quang Hợp", "Leaf", 0, 10, 10, "Hồi 30 HP."),
-            Skill("Húc", "Normal", 13, 10, 10, "Húc đầu."),
-            Skill("Lá Bay", "Leaf", 14, 10, 10, "Phóng lá."),
-            Skill("Bùn Lầy", "Water", 12, 10, 10, "Ném bùn.")
-        ))
+                // Dòng Hoa: Máu giấy, Dame to -> Giảm Dame lại
+                Monster("FLORAMONA_1", 35, 20, 20, 60, "Leaf", "Phấn Hoa", "Hoa nhỏ."),
+                Monster("FLORAMONA_2", 55, 28, 30, 70, "Leaf", "Gai Nhọn", "Hoa gai."),
+                // Con này trước Atk 40 quá khỏe, giảm xuống 32
+                Monster("FLORAMONA_3", 80, 32, 45, 80, "Leaf", "Nữ Hoàng", "Hoa chúa."),
 
-        // DOREWEE
-        insertSkillsFor(db, "DOREWEE", listOf(
-            Skill("Vỏ Cứng", "Water", 0, 10, 10, "Tăng Thủ 3 lượt."),
-            Skill("Đập", "Normal", 12, 10, 10, "Đuôi đập."),
-            Skill("Bong Bóng", "Water", 14, 10, 10, "Bắn bong bóng."),
-            Skill("Hơi Nóng", "Fire", 13, 10, 10, "Thổi hơi nóng.")
-        ))
+                // Dòng Nước: Trâu bò -> Giảm HP để đánh cho lẹ
+                Monster("OCTOKINETUS", 60, 30, 35, 60, "Water", "Xúc Tu", "Bạch tuộc."),
+                // Con cá đuối này Speed cao, giảm Atk để tránh gây khó chịu
+                Monster("STORMANTA", 65, 28, 30, 85, "Water", "Lướt Sóng", "Cá đuối."),
+                Monster("KOCOMB", 70, 22, 55, 30, "Water", "Gai Cứng", "Gai góc."),
+                Monster("MUNCHILL", 55, 30, 40, 40, "Water", "Điềm Tĩnh", "Băng giá."),
 
-        // CÁC QUÁI KHÁC
-        val fireSkills = listOf(Skill("Cào","Normal",12,10,10,""), Skill("Lửa","Fire",18,10,10,""), Skill("Buff Công","Fire",0,10,10,""), Skill("Đá","Leaf",14,10,10,""))
-        listOf("CONFLEVOUR", "ORICORIO", "GREXCLUB", "CHUB").forEach { insertSkillsFor(db, it, fireSkills) }
+                // Dòng Lửa: Dame to -> Nerf Atk nặng nhất
+                // Oricorio Atk 38 -> 28 (Giảm sốc damage)
+                Monster("ORICORIO", 50, 28, 20, 85, "Fire", "Vũ Điệu", "Chim lửa."),
+                // Grexclub Atk 40 -> 30, HP 70 -> 60
+                Monster("GREXCLUB", 60, 30, 40, 55, "Fire", "Nhiệt Huyết", "Khủng long."),
+                // Chub máu quá trâu (100), giảm xuống 85
+                Monster("CHUB", 85, 22, 30, 30, "Fire", "Mỡ Dày", "Mập mạp.")
+            )
 
-        val leafSkills = listOf(Skill("Húc","Normal",12,10,10,""), Skill("Lá","Leaf",18,10,10,""), Skill("Hồi Máu","Leaf",0,10,10,""), Skill("Bùn","Water",14,10,10,""))
-        listOf("RHITAIN", "FLORAMONA_1", "FLORAMONA_2", "FLORAMONA_3").forEach { insertSkillsFor(db, it, leafSkills) }
+            allMonsters.forEach { m ->
+                val values = ContentValues().apply {
+                    put(KEY_NAME, m.name)
+                    put("hp", m.hp)
+                    put("atk", m.atk)
+                    put("def", m.def)
+                    put("speed", m.speed)
+                    put("type", m.type)
+                    put("ability", m.ability)
+                    put("description", m.description)
+                }
+                db?.insert(TABLE_MONSTERS, null, values)
+            }
 
-        val waterSkills = listOf(Skill("Đập","Normal",12,10,10,""), Skill("Nước","Water",18,10,10,""), Skill("Giáp","Water",0,10,10,""), Skill("Hơi","Fire",14,10,10,""))
-        listOf("DOPERAMI", "OCTOKINETUS", "KOCOMB", "STORMANTA", "MUNCHILL").forEach { insertSkillsFor(db, it, waterSkills) }
+            // --- INSERT SKILLS ---
+            // Skill cơ bản power tầm 10-15 là ổn với chỉ số mới này.
+            insertSkillsFor(db, "CRISHY", listOf(
+                Skill("Nóng Giận", "Fire", 0, 10, 10, "Tăng Tấn Công 3 lượt."),
+                Skill("Cào", "Normal", 12, 15, 15, "Cào mạnh."), // Tăng PP lên 15
+                Skill("Đốm Lửa", "Fire", 15, 10, 10, "Bắn lửa."),
+                Skill("Ném Đá", "Leaf", 14, 10, 10, "Ném đá.")
+            ))
 
-        // 3. BUFFS
-        val buffs = listOf(
-            Buff("Búa Choáng", "10% cơ hội gây CHOÁNG khi dùng kỹ năng bất kỳ.", "Any", "STUN"),
-            Buff("Tinh Thể Lửa", "10% cơ hội gây BỎNG (Mất 10 HP/lượt) khi dùng chiêu Lửa.", "Fire", "BURN"),
-            Buff("Nước Axit", "10% cơ hội phá giáp (Giảm 1/2 Thủ) khi dùng chiêu Nước.", "Water", "BREAK_DEF"),
-            Buff("Dây Leo Gai", "10% cơ hội làm yếu (Giảm 1/2 Công) khi dùng chiêu Lá.", "Leaf", "WEAKEN")
-        )
-        buffs.forEach { buff ->
-            val values = ContentValues().apply { put(KEY_BUFF_NAME, buff.name); put(KEY_BUFF_DESC, buff.description); put(KEY_BUFF_TARGET_TYPE, buff.targetType); put(KEY_BUFF_EFFECT, buff.effectType) }
-            db?.insert(TABLE_BUFFS, null, values)
+            insertSkillsFor(db, "RHINPLINK", listOf(
+                Skill("Quang Hợp", "Leaf", 0, 5, 5, "Hồi 30 HP."), // Giảm PP skill hồi máu
+                Skill("Húc", "Normal", 13, 15, 15, "Húc đầu."),
+                Skill("Lá Bay", "Leaf", 14, 10, 10, "Phóng lá."),
+                Skill("Bùn Lầy", "Water", 12, 10, 10, "Ném bùn.")
+            ))
+
+            insertSkillsFor(db, "DOREWEE", listOf(
+                Skill("Vỏ Cứng", "Water", 0, 10, 10, "Tăng Thủ 3 lượt."),
+                Skill("Đập", "Normal", 12, 15, 15, "Đuôi đập."),
+                Skill("Bong Bóng", "Water", 14, 10, 10, "Bắn bong bóng."),
+                Skill("Hơi Nóng", "Fire", 13, 10, 10, "Thổi hơi nóng.")
+            ))
+
+            val fireSkills = listOf(Skill("Cào","Normal",10,10,10,""), Skill("Lửa","Fire",15,10,10,""), Skill("Buff Công","Fire",0,10,10,""), Skill("Đá","Leaf",12,10,10,""))
+            listOf("CONFLEVOUR", "ORICORIO", "GREXCLUB", "CHUB").forEach { insertSkillsFor(db, it, fireSkills) }
+
+            val leafSkills = listOf(Skill("Húc","Normal",10,10,10,""), Skill("Lá","Leaf",15,10,10,""), Skill("Hồi Máu","Leaf",0,10,10,""), Skill("Bùn","Water",12,10,10,""))
+            listOf("RHITAIN", "FLORAMONA_1", "FLORAMONA_2", "FLORAMONA_3").forEach { insertSkillsFor(db, it, leafSkills) }
+
+            val waterSkills = listOf(Skill("Đập","Normal",10,10,10,""), Skill("Nước","Water",15,10,10,""), Skill("Giáp","Water",0,10,10,""), Skill("Hơi","Fire",12,10,10,""))
+            listOf("DOPERAMI", "OCTOKINETUS", "KOCOMB", "STORMANTA", "MUNCHILL").forEach { insertSkillsFor(db, it, waterSkills) }
+
+            // --- INSERT BUFFS ---
+            val buffs = listOf(
+                Buff("Búa Choáng", "10% cơ hội gây CHOÁNG khi dùng kỹ năng bất kỳ.", "Any", "STUN"),
+                Buff("Tinh Thể Lửa", "10% cơ hội gây BỎNG (Mất 10 HP/lượt) khi dùng chiêu Lửa.", "Fire", "BURN"),
+                Buff("Nước Axit", "10% cơ hội phá giáp (Giảm 1/2 Thủ) khi dùng chiêu Nước.", "Water", "BREAK_DEF"),
+                Buff("Dây Leo Gai", "10% cơ hội làm yếu (Giảm 1/2 Công) khi dùng chiêu Lá.", "Leaf", "WEAKEN")
+            )
+            buffs.forEach { buff ->
+                val values = ContentValues().apply {
+                    put(KEY_BUFF_NAME, buff.name)
+                    put(KEY_BUFF_DESC, buff.description)
+                    put(KEY_BUFF_TARGET_TYPE, buff.targetType)
+                    put(KEY_BUFF_EFFECT, buff.effectType)
+                }
+                db?.insert(TABLE_BUFFS, null, values)
+            }
+
+            db?.setTransactionSuccessful()
+
+        } catch (e: Exception) {
+            e.printStackTrace()
+        } finally {
+            db?.endTransaction()
         }
     }
 
     private fun insertSkillsFor(db: SQLiteDatabase?, ownerName: String, skills: List<Skill>) {
         skills.forEach { s ->
-            val values = ContentValues().apply { put(KEY_OWNER_NAME, ownerName); put(KEY_SKILL_NAME, s.name); put(KEY_SKILL_TYPE, s.type); put(KEY_POWER, s.power); put(KEY_PP, s.maxPp); put(KEY_SKILL_DESC, s.description) }
+            val values = ContentValues().apply {
+                put(KEY_OWNER_NAME, ownerName)
+                put(KEY_SKILL_NAME, s.name)
+                put(KEY_SKILL_TYPE, s.type)
+                put(KEY_POWER, s.power)
+                put(KEY_PP, s.maxPp)
+                put(KEY_SKILL_DESC, s.description)
+            }
             db?.insert(TABLE_SKILLS, null, values)
         }
     }

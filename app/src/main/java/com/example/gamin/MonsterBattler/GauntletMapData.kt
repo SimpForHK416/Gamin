@@ -1,6 +1,7 @@
 package com.example.gamin.MonsterBattler
 
 import java.util.UUID
+import kotlin.random.Random
 
 enum class NodeType {
     BATTLE, ELITE, MYSTERY, BOSS
@@ -10,43 +11,92 @@ data class MapNode(
     val id: String = UUID.randomUUID().toString(),
     val type: NodeType,
     val level: Int,
-    val indexInRow: Int, // Vị trí của node trong hàng (0, 1, 2...)
-    // Danh sách các index của tầng tiếp theo mà node này nối tới
-    val connectedIndices: List<Int> = emptyList()
+    val indexInRow: Int,
+    var connectedIndices: List<Int> = emptyList()
 )
 
-object MapGenerator {
+object GauntletMapGenerator {
 
-    fun generateMap(): List<List<MapNode>> {
-        return listOf(
-            // Tầng 1 (Start): 1 node nối với 2 node ở tầng 2 (index 0 và 1)
-            listOf(
-                MapNode(type = NodeType.BATTLE, level = 1, indexInRow = 0, connectedIndices = listOf(0, 1))
-            ),
+    fun generateRandomMap(): List<List<MapNode>> {
+        val map = mutableListOf<List<MapNode>>()
+        val random = Random.Default
 
-            // Tầng 2: 2 node.
-            // Node 0 nối với (0, 1) tầng 3. Node 1 nối với (1, 2) tầng 3.
-            listOf(
-                MapNode(type = NodeType.BATTLE, level = 2, indexInRow = 0, connectedIndices = listOf(0, 1)),
-                MapNode(type = NodeType.MYSTERY, level = 2, indexInRow = 1, connectedIndices = listOf(1, 2))
-            ),
+        // TẦNG 1: LUÔN LÀ 1 Ô BATTLE (START)
+        val level1 = listOf(MapNode(type = NodeType.BATTLE, level = 1, indexInRow = 0))
+        map.add(level1)
 
-            // Tầng 3: 3 node.
-            listOf(
-                MapNode(type = NodeType.ELITE, level = 3, indexInRow = 0, connectedIndices = listOf(0)),
-                MapNode(type = NodeType.BATTLE, level = 3, indexInRow = 1, connectedIndices = listOf(0)),
-                MapNode(type = NodeType.BATTLE, level = 3, indexInRow = 2, connectedIndices = listOf(0))
-            ),
+        // TẦNG 2, 3, 4: RANDOM SỐ LƯỢNG VÀ LOẠI NODE
+        for (level in 2..4) {
+            val nodeCount = random.nextInt(2, 4) // Random từ 2 đến 3 node mỗi tầng
+            val nodes = mutableListOf<MapNode>()
 
-            // Tầng 4: 1 node (Hồi phục/Sự kiện)
-            listOf(
-                MapNode(type = NodeType.MYSTERY, level = 4, indexInRow = 0, connectedIndices = listOf(0))
-            ),
+            for (i in 0 until nodeCount) {
+                // Tỷ lệ: 50% Battle, 30% Mystery (Xanh), 20% Elite (Vàng)
+                val roll = random.nextFloat()
+                val type = when {
+                    roll < 0.5 -> NodeType.BATTLE
+                    roll < 0.8 -> NodeType.MYSTERY
+                    else -> NodeType.ELITE
+                }
+                nodes.add(MapNode(type = type, level = level, indexInRow = i))
+            }
+            map.add(nodes)
+        }
 
-            // Tầng 5: BOSS
-            listOf(
-                MapNode(type = NodeType.BOSS, level = 5, indexInRow = 0)
-            )
-        )
+        // TẦNG 5: LUÔN LÀ BOSS
+        val level5 = listOf(MapNode(type = NodeType.BOSS, level = 5, indexInRow = 0))
+        map.add(level5)
+
+        // --- TẠO ĐƯỜNG NỐI (ĐÃ SỬA LOGIC CHỐNG MỒ CÔI) ---
+        for (i in 0 until map.size - 1) {
+            val currentLevel = map[i]      // Tầng dưới
+            val nextLevel = map[i+1]       // Tầng trên
+
+            // BƯỚC 1: Nối từ dưới lên (Logic cũ)
+            // Mỗi node dưới nối với các node gần nó ở trên
+            currentLevel.forEach { currentNode ->
+                val connections = mutableListOf<Int>()
+
+                val leftTarget = (currentNode.indexInRow).coerceAtMost(nextLevel.lastIndex)
+                val rightTarget = (currentNode.indexInRow + 1).coerceAtMost(nextLevel.lastIndex)
+
+                connections.add(leftTarget)
+                if (leftTarget != rightTarget) {
+                    connections.add(rightTarget)
+                }
+
+                // Lưu tạm
+                currentNode.connectedIndices = connections
+            }
+
+            // BƯỚC 2: Kiểm tra ngược (FIX LỖI MỒ CÔI)
+            // Duyệt qua tất cả node ở tầng trên, xem có node nào chưa được nối không
+            nextLevel.forEach { targetNode ->
+                // Kiểm tra xem có node nào ở tầng dưới nối tới targetNode này không
+                val isConnected = currentLevel.any { it.connectedIndices.contains(targetNode.indexInRow) }
+
+                if (!isConnected) {
+                    // NẾU KHÔNG CÓ AI NỐI TỚI -> BẮT BUỘC NỐI
+                    // Tìm node ở tầng dưới có vị trí (index) gần node này nhất
+                    // indexInRow của node dưới tối đa chỉ bằng size-1 của tầng dưới
+                    val parentIndexToForce = targetNode.indexInRow.coerceAtMost(currentLevel.lastIndex)
+
+                    val parentNode = currentLevel[parentIndexToForce]
+
+                    // Thêm kết nối mới vào danh sách kết nối của node cha
+                    val newConnections = parentNode.connectedIndices.toMutableList()
+                    newConnections.add(targetNode.indexInRow)
+
+                    // Cập nhật lại và sắp xếp cho đẹp
+                    parentNode.connectedIndices = newConnections.distinct().sorted()
+                }
+            }
+        }
+
+        // Fix cứng: Tất cả node tầng 4 phải nối về Boss (index 0 tầng 5)
+        // Dù logic trên đã bao phủ, nhưng dòng này đảm bảo chắc chắn 100% không lỗi boss
+        map[3].forEach { it.connectedIndices = listOf(0) }
+
+        return map
     }
 }
