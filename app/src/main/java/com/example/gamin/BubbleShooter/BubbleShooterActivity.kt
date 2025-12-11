@@ -9,6 +9,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import com.example.gamin.ui.theme.GaminTheme
 
+// ID định danh cho Bubble Shooter trên Firebase
+const val GAME_ID_BUBBLE_SHOOTER = "bubble_shooter"
+
 class BubbleShooterActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -19,7 +22,6 @@ class BubbleShooterActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    // Gọi Composable chính của game
                     BubbleShooterScreen()
                 }
             }

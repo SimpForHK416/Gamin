@@ -8,9 +8,11 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -32,11 +34,16 @@ import com.example.gamin.MonsterBattler.ui.GameModeScreen
 import com.example.gamin.MonsterBattler.ui.GameViewModel
 import com.example.gamin.MonsterBattler.ui.GauntletMapScreen
 import com.example.gamin.MonsterBattler.ui.IntroScreen
+import com.example.gamin.MonsterBattler.ui.LeaderboardScreen
 import com.example.gamin.MonsterBattler.ui.MajorUpgradeScreen
 import com.example.gamin.MonsterBattler.ui.MysteryScreen
 import com.example.gamin.MonsterBattler.ui.PickingScreen
+import com.example.gamin.MonsterBattler.ui.SaveScoreDialog
 import com.example.gamin.MonsterBattler.ui.TeamManagementScreen
+import com.example.gamin.MonsterBattler.ui.painterFor
 import com.example.gamin.ui.theme.GaminTheme
+
+const val GAME_ID_MONSTER_BATTLER = "monster_battler"
 
 class MonsterBattlerActivity : ComponentActivity() {
 
@@ -56,36 +63,32 @@ class MonsterBattlerActivity : ComponentActivity() {
 
                     val dbHelper = remember { MonsterDbHelper(context) }
 
-                    // Dialog Logic
                     var pendingReward by remember { mutableStateOf<Reward?>(null) }
                     var showForceSwapDialog by remember { mutableStateOf(false) }
 
-                    // Lắng nghe xem Player có chết không để hiện Dialog đổi người
                     LaunchedEffect(battleState.battleState) {
                         if (battleState.battleState == BattleState.PLAYER_FAINTED) {
                             val survivors = gameViewModel.getSurvivors()
                             if (survivors.isNotEmpty()) {
                                 showForceSwapDialog = true
                             } else {
-                                battleViewModel.triggerDefeat() // Hết quái -> Thua
+                                gameViewModel.onGameOver()
                             }
                         }
                     }
 
-                    // Cập nhật HP vào GameViewModel mỗi khi bị đánh
                     LaunchedEffect(battleState.playerHp) {
                         if (gameState.currentScreen == "BATTLE" && gameState.playerMonster != null) {
                             gameViewModel.updateHpInBattle(battleState.playerHp)
                         }
                     }
 
-                    // --- DIALOG ĐỔI QUÁI BẮT BUỘC (KHI CHẾT) ---
                     if (showForceSwapDialog) {
                         val survivors = remember(gameState.teamHp) { gameViewModel.getSurvivors() }
                         SwitchMonsterDialog(
                             title = "Đồng đội đã gục ngã!",
                             availableMonsters = survivors,
-                            onDismiss = { /* Không cho tắt, bắt buộc chọn */ },
+                            onDismiss = { },
                             onMonsterSelected = { monster ->
                                 gameViewModel.switchActiveMonsterInBattle(monster)
                                 battleViewModel.replaceFaintedMonster(monster, gameViewModel.getSkills(monster.name))
@@ -94,7 +97,6 @@ class MonsterBattlerActivity : ComponentActivity() {
                         )
                     }
 
-                    // --- DIALOG CHỌN QUÁI ĐỂ BUFF ---
                     if (pendingReward != null) {
                         TargetSelectionDialog(
                             team = gameState.team,
@@ -114,6 +116,7 @@ class MonsterBattlerActivity : ComponentActivity() {
                             monsters = remember { gameViewModel.getStarters() },
                             onMonsterSelected = { name -> gameViewModel.pickStarter(name) }
                         )
+
                         "MAP" -> {
                             Box(modifier = Modifier.fillMaxSize()) {
                                 GauntletMapScreen(
@@ -149,24 +152,32 @@ class MonsterBattlerActivity : ComponentActivity() {
                                 ) {
                                     Icon(imageVector = Icons.Default.Menu, contentDescription = "Team", tint = Color.White)
                                 }
+                                FloatingActionButton(
+                                    onClick = { gameViewModel.openLeaderboard() },
+                                    modifier = Modifier.align(Alignment.TopEnd).padding(top = 80.dp, end = 16.dp).size(48.dp),
+                                    containerColor = Color(0xFFFFC107)
+                                ) {
+                                    Icon(imageVector = Icons.Default.Star, contentDescription = "Leaderboard", tint = Color.White)
+                                }
                             }
                         }
-                        "TEAM_MANAGEMENT" -> TeamManagementScreen(
-                            team = gameState.team,
-                            onSwap = { i1, i2 -> gameViewModel.swapTeamMembers(i1, i2) },
-                            onBack = { gameViewModel.closeTeamManagement() }
-                        )
+
+                        "TEAM_MANAGEMENT" -> {
+                            TeamManagementScreen(
+                                team = gameState.team,
+                                onSwap = { i1, i2 -> gameViewModel.swapTeamMembers(i1, i2) },
+                                onBack = { gameViewModel.closeTeamManagement() }
+                            )
+                        }
+
                         "MYSTERY" -> MysteryScreen(currentHp = gameState.currentHp, maxHp = gameState.playerMonster!!.hp, onFinished = { newHp -> gameViewModel.onMysteryFinished(newHp) })
 
                         "BATTLE" -> {
-                            // Lọc danh sách quái còn sống để truyền vào nút đổi người
                             val livingTeam = remember(gameState.teamHp) { gameViewModel.getSurvivors() }
-
                             BattleScreen(
                                 viewModel = battleViewModel,
                                 team = livingTeam,
                                 onSwitchMonster = { newMonster ->
-                                    // Đổi chủ động (Mất lượt)
                                     gameViewModel.switchActiveMonsterInBattle(newMonster)
                                     battleViewModel.switchPlayerMonster(newMonster, gameViewModel.getSkills(newMonster.name))
                                 }
@@ -188,10 +199,35 @@ class MonsterBattlerActivity : ComponentActivity() {
 
                         "MAJOR_UPGRADE" -> {
                             val currentTeam = gameState.team
-                            MajorUpgradeScreen(
-                                currentTeam = currentTeam,
-                                availableStarters = remember { gameViewModel.getAvailableRecruits() },
-                                onUpgradeFinished = { newTeam -> gameViewModel.onMajorUpgradeFinished(newTeam) }
+                            Box(modifier = Modifier.fillMaxSize()) {
+                                MajorUpgradeScreen(
+                                    currentTeam = currentTeam,
+                                    availableStarters = remember { gameViewModel.getAvailableRecruits() },
+                                    onUpgradeFinished = { newTeam -> gameViewModel.onMajorUpgradeFinished(newTeam) }
+                                )
+                                Button(
+                                    onClick = { gameViewModel.openLeaderboard() },
+                                    modifier = Modifier.align(Alignment.TopEnd).padding(16.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFA000))
+                                ) {
+                                    Text("Xem BXH")
+                                }
+                            }
+                        }
+
+                        "GAME_OVER" -> {
+                            SaveScoreDialog(
+                                score = gameState.currentScore,
+                                gameId = GAME_ID_MONSTER_BATTLER,
+                                onDismiss = { gameViewModel.onBattleLost() },
+                                onSaved = { gameViewModel.showLeaderboardEndGame() }
+                            )
+                        }
+
+                        "LEADERBOARD" -> {
+                            LeaderboardScreen(
+                                gameId = GAME_ID_MONSTER_BATTLER,
+                                onBack = { gameViewModel.closeLeaderboard() }
                             )
                         }
                     }
@@ -201,29 +237,17 @@ class MonsterBattlerActivity : ComponentActivity() {
     }
 }
 
-// Dialog dùng chung cho việc đổi quái khi chết
 @Composable
-fun SwitchMonsterDialog(
-    title: String,
-    availableMonsters: List<Monster>,
-    onDismiss: () -> Unit,
-    onMonsterSelected: (Monster) -> Unit
-) {
+fun SwitchMonsterDialog(title: String, availableMonsters: List<Monster>, onDismiss: () -> Unit, onMonsterSelected: (Monster) -> Unit) {
     Dialog(onDismissRequest = onDismiss) {
         Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Color.White)) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(title, fontWeight = FontWeight.Bold, fontSize = 18.sp, modifier = Modifier.padding(bottom = 12.dp))
-                if (availableMonsters.isEmpty()) {
-                    Text("Không còn ai...", color = Color.Gray)
-                } else {
+                if (availableMonsters.isEmpty()) Text("Không còn ai...", color = Color.Gray) else {
                     LazyColumn {
                         items(availableMonsters) { monster ->
-                            Row(
-                                modifier = Modifier.fillMaxWidth().clickable { onMonsterSelected(monster) }.padding(vertical = 12.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(monster.name, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-                                // Text("HP: ${monster.hp}", color = Color.Gray) // Có thể hiện HP thực tế nếu lấy từ map
+                            Row(modifier = Modifier.fillMaxWidth().clickable { onMonsterSelected(monster) }.padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Text(monster.name, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f)); Text("HP: ${monster.hp}", color = Color.Gray)
                             }
                             Divider()
                         }
@@ -235,27 +259,17 @@ fun SwitchMonsterDialog(
 }
 
 @Composable
-fun TargetSelectionDialog(
-    team: List<Monster>,
-    reward: Reward,
-    onDismiss: () -> Unit,
-    onTargetSelected: (Monster) -> Unit
-) {
+fun TargetSelectionDialog(team: List<Monster>, reward: Reward, onDismiss: () -> Unit, onTargetSelected: (Monster) -> Unit) {
     Dialog(onDismissRequest = onDismiss) {
         Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Color.White)) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text("Chọn mục tiêu nhận thưởng:", fontWeight = FontWeight.Bold, fontSize = 18.sp, modifier = Modifier.padding(bottom = 12.dp))
-                val desc = when(reward) {
-                    is Reward.StatUpgrade -> reward.description
-                    is Reward.Heal -> reward.description
-                    is Reward.SkillEffect -> "Nhận hiệu ứng: ${reward.buff.name}"
-                }
+                val desc = when(reward) { is Reward.StatUpgrade -> reward.description; is Reward.Heal -> reward.description; is Reward.SkillEffect -> "Nhận hiệu ứng: ${reward.buff.name}" }
                 Text(desc, color = Color.Blue, modifier = Modifier.padding(bottom = 16.dp))
                 LazyColumn {
                     items(team) { monster ->
                         Row(modifier = Modifier.fillMaxWidth().clickable { onTargetSelected(monster) }.padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Text(monster.name, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-                            Text("HP: ${monster.hp}", color = Color.Gray)
+                            Text(monster.name, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f)); Text("HP: ${monster.hp}", color = Color.Gray)
                         }
                         Divider()
                     }

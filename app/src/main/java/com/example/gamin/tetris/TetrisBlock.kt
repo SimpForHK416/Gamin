@@ -4,7 +4,8 @@ import android.graphics.Color
 import android.graphics.Paint
 import kotlin.random.Random
 
-data class TetrisBlock(
+// Class thường (không phải data class) để tự quản lý copy và equals
+class TetrisBlock(
     var shape: Array<IntArray>,
     var color: Int,
     var x: Int = 3,
@@ -75,13 +76,24 @@ data class TetrisBlock(
 
         fun randomBlock(): TetrisBlock {
             val index = Random.nextInt(shapes.size)
+            // Clone mảng để tránh tham chiếu tĩnh
             val shape = shapes[index].map { it.clone() }.toTypedArray()
             val color = colors[Random.nextInt(colors.size)]
             return TetrisBlock(shape, color)
         }
     }
 
-    // ✅ Thêm equals() & hashCode() để không cảnh báo khi dùng Array
+    // Hàm copy thủ công (Deep copy cho shape)
+    fun copy(
+        shape: Array<IntArray> = this.shape.map { it.clone() }.toTypedArray(),
+        color: Int = this.color,
+        x: Int = this.x,
+        y: Int = this.y
+    ): TetrisBlock {
+        return TetrisBlock(shape, color, x, y)
+    }
+
+    // Override equals & hashCode để so sánh nội dung mảng
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is TetrisBlock) return false

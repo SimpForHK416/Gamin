@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 
     id("kotlin-kapt")
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -65,11 +66,13 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.0")
 
 
-    // ==========================================================
-    // 2. THÊM DEPENDENCIES CHO KAPT
     val roomVersion = "2.6.1"
     implementation("androidx.room:room-runtime:$roomVersion")
     implementation("androidx.room:room-ktx:$roomVersion")
     kapt("androidx.room:room-compiler:$roomVersion")
-    // ==========================================================
+    // 1. Firebase BoM (Giúp quản lý phiên bản)
+    implementation(platform("com.google.firebase:firebase-bom:33.7.0"))
+
+    // 2. Thư viện Firestore (Database lưu điểm)
+    implementation("com.google.firebase:firebase-firestore")
 }

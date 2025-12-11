@@ -11,7 +11,11 @@ import android.view.SurfaceView
 import kotlin.concurrent.thread
 import kotlin.math.abs
 
-class TetrisView(context: Context, private val difficulty: String) : SurfaceView(context), SurfaceHolder.Callback {
+class TetrisView(
+    context: Context,
+    private val difficulty: String,
+    private val onGameOver: (Int) -> Unit // Callback trả về điểm số
+) : SurfaceView(context), SurfaceHolder.Callback {
 
     private var threadRunning = false
     private var gridWidth = 10
@@ -24,6 +28,8 @@ class TetrisView(context: Context, private val difficulty: String) : SurfaceView
     private val linesPerLevel = 4
 
     private var isGameOver = false
+    private var hasTriggeredGameOver = false // Cờ để đảm bảo chỉ lưu điểm 1 lần
+
     private var initialFallDelay = 500L
     private var maxFallDelay = 100L
     private var fallDelay = 500L
@@ -161,6 +167,7 @@ class TetrisView(context: Context, private val difficulty: String) : SurfaceView
 
     private fun startGame() {
         isGameOver = false
+        hasTriggeredGameOver = false // Reset cờ
         grid = Array(gridHeight) { IntArray(gridWidth) }
         score = 0
         level = 1
@@ -221,6 +228,8 @@ class TetrisView(context: Context, private val difficulty: String) : SurfaceView
     private fun getNewBlock() {
         currentBlock = nextBlocks.removeAt(0)
         nextBlocks.add(TetrisBlock.randomBlock())
+
+        // KIỂM TRA ĐIỀU KIỆN THUA: Vừa sinh ra đã va chạm
         if (collides(currentBlock, 0, 0)) {
             gameOver()
         }
@@ -370,6 +379,18 @@ class TetrisView(context: Context, private val difficulty: String) : SurfaceView
             canvas.drawText(">", rightButtonRect.centerX(), rightButtonRect.centerY() + paintButtonText.textSize / 3, paintButtonText)
 
             if (isGameOver) {
+                // VẼ GAME OVER
+                val dimPaint = Paint().apply { color = Color.BLACK; alpha = 150 }
+                canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), dimPaint)
+
+                val gameOverTextPaint = Paint().apply {
+                    color = Color.RED
+                    textSize = 80f
+                    isFakeBoldText = true
+                    textAlign = Paint.Align.CENTER
+                }
+                canvas.drawText("GAME OVER", width / 2f, height / 2f - 100f, gameOverTextPaint)
+
                 playAgainButtonRect = RectF(panelX, PADDING.toFloat(), panelRight, PADDING + topAreaHeight * 0.8f)
                 val playAgainPaint = Paint(paintButtonBg).apply { color = Color.parseColor("#FFC107") }
                 val playAgainTextPaint = Paint(paintButtonText).apply { color = Color.BLACK; textSize = 48f }
@@ -473,6 +494,13 @@ class TetrisView(context: Context, private val difficulty: String) : SurfaceView
 
     private fun gameOver() {
         isGameOver = true
+        // Chỉ gọi callback 1 lần duy nhất
+        if (!hasTriggeredGameOver) {
+            hasTriggeredGameOver = true
+            post {
+                onGameOver(score)
+            }
+        }
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
