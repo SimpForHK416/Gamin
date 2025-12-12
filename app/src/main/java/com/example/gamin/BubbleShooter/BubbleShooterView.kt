@@ -11,10 +11,9 @@ import java.util.ArrayDeque
 import kotlin.math.*
 import kotlin.random.Random
 
-// Thêm tham số onGameOver vào Constructor
 class BubbleShooterView(
     context: Context,
-    private val onGameOver: (Int) -> Unit // Callback trả về điểm số
+    private val onGameOver: (Int) -> Unit
 ) : SurfaceView(context), SurfaceHolder.Callback {
 
     private val thread: BubbleShooterThread
@@ -23,7 +22,6 @@ class BubbleShooterView(
 
     init {
         holder.addCallback(this)
-        // Truyền callback vào Thread
         thread = BubbleShooterThread(holder, context, onGameOver)
         isFocusable = true
     }
@@ -65,11 +63,10 @@ class BubbleShooterView(
     }
 }
 
-// Thread xử lý game loop
 class BubbleShooterThread(
     private val surfaceHolder: SurfaceHolder,
     private val context: Context,
-    private val onGameOver: (Int) -> Unit // Nhận callback từ View
+    private val onGameOver: (Int) -> Unit
 ) : Thread() {
 
     private var running = false
@@ -77,7 +74,6 @@ class BubbleShooterThread(
     private var screenWidth = 0
     private var screenHeight = 0
 
-    // Game constants
     private val BUBBLE_COLORS = arrayOf(
         Color.RED, Color.GREEN, Color.BLUE, Color.YELLOW, Color.MAGENTA, Color.CYAN, Color.rgb(255, 165, 0)
     )
@@ -91,28 +87,23 @@ class BubbleShooterThread(
     private var ROW_HEIGHT = 52f
     private var BUBBLE_RADIUS = 28f
 
-    // Game state
     private enum class GameState { READY, SHOOT_BUBBLE, REMOVE_CLUSTER, GAME_OVER }
     private var gameState = GameState.READY
     private var score = 0
     private var turnCounter = 0
     private var rowOffset = 0
 
-    // Cờ để đảm bảo chỉ lưu điểm 1 lần
     private var hasTriggeredGameOver = false
 
-    // Power-ups
     private var bombCount = 3
     private var rainbowCount = 3
 
-    // Level data
     private var levelX = 0f
     private var levelY = 0f
     private var levelWidth = 0f
     private var levelHeight = 0f
     private val tiles = Array(LEVEL_COLUMNS) { Array(LEVEL_ROWS) { Tile(-1) } }
 
-    // Player data
     private var playerX = 0f
     private var playerY = 0f
     private var playerAngle = 90f
@@ -120,25 +111,21 @@ class BubbleShooterThread(
     private var nextBubble = Bubble(0f, 0f, 0, true)
     private var shootingBubble = Bubble(0f, 0f, 0, false)
 
-    // UI Buttons coords
     private var bombButtonCenterX = 0f
     private var bombButtonCenterY = 0f
     private var rainbowButtonCenterX = 0f
     private var rainbowButtonCenterY = 0f
     private var powerupButtonRadius = 0f
 
-    // Animation
     private var animationTime = 0L
     private var cluster = mutableListOf<Tile>()
     private var floatingClusters = mutableListOf<List<Tile>>()
 
-    // Graphics
     private val paint = Paint().apply {
         isAntiAlias = true
         textAlign = Paint.Align.CENTER
     }
 
-    // Handler để post lên UI thread
     private val mainHandler = Handler(Looper.getMainLooper())
 
     private val neighborOffsets = arrayOf(
@@ -209,7 +196,7 @@ class BubbleShooterThread(
         turnCounter = 0
         rowOffset = 0
         gameState = GameState.READY
-        hasTriggeredGameOver = false // Reset cờ
+        hasTriggeredGameOver = false
         bombCount = 3
         rainbowCount = 3
         createLevel()
@@ -432,7 +419,7 @@ class BubbleShooterThread(
             turnCounter++
             if (turnCounter % 3 == 0) addNewRow()
             nextBubble()
-            checkGameOver() // Kiểm tra sau khi dọn xong
+            checkGameOver()
             if (gameState != GameState.GAME_OVER) {
                 gameState = GameState.READY
             }
@@ -558,7 +545,6 @@ class BubbleShooterThread(
         rowOffset = (rowOffset + 1) % 2
     }
 
-    // Hàm kiểm tra Game Over và gọi callback
     private fun checkGameOver(): Boolean {
         for (i in 0 until LEVEL_COLUMNS) {
             if (tiles[i][LEVEL_ROWS - 1].type != -1) {
@@ -573,7 +559,6 @@ class BubbleShooterThread(
         gameState = GameState.GAME_OVER
         if (!hasTriggeredGameOver) {
             hasTriggeredGameOver = true
-            // Gửi callback về Main Thread
             mainHandler.post {
                 onGameOver(score)
             }

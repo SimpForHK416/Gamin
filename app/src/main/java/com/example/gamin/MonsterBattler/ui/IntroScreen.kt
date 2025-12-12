@@ -17,7 +17,6 @@ fun IntroScreen(
 ) {
     var dialogueIndex by remember { mutableStateOf(0) }
 
-    // Lấy câu thoại hiện tại
     val currentFullText = Narrator.introDialogue[dialogueIndex]
 
     Box(

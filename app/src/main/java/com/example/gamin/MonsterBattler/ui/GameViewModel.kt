@@ -17,7 +17,6 @@ val EVO_CHECK_MAP = mapOf("CRISHY" to "CONFLEVOUR", "RHINPLINK" to "RHITAIN", "D
 
 data class GameState(
     val currentScreen: String = "INTRO",
-    // Biến để nhớ màn hình trước khi vào Leaderboard
     val previousScreen: String? = null,
 
     val playerMonster: Monster? = null,
@@ -45,8 +44,6 @@ class GameViewModel : ViewModel() {
 
     fun init(context: Context) { dbHelper = MonsterDbHelper(context) }
 
-    // --- LOGIC ĐIỀU HƯỚNG BẢNG XẾP HẠNG ---
-
     fun openLeaderboard() {
         val current = _gameState.value.currentScreen
         _gameState.value = _gameState.value.copy(
@@ -70,8 +67,6 @@ class GameViewModel : ViewModel() {
             previousScreen = null
         )
     }
-
-    // --- GAME LOGIC ---
 
     fun onIntroFinished() { _gameState.value = GameState(currentScreen = "GAME_MODE") }
 

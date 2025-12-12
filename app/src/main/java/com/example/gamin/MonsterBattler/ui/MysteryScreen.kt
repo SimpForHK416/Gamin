@@ -22,11 +22,10 @@ fun MysteryScreen(
     maxHp: Int,
     onFinished: (Int) -> Unit
 ) {
-    var screenState by remember { mutableStateOf("MENU") } // MENU, GAMBLE_GAME, RESULT
+    var screenState by remember { mutableStateOf("MENU") }
     var message by remember { mutableStateOf("Bạn tìm thấy một suối nước thiêng.\nBạn muốn làm gì?") }
     var tempHp by remember { mutableIntStateOf(currentHp) }
 
-    // SỬA: Khởi tạo bằng 0 để biết là chưa tung
     var playerDice by remember { mutableIntStateOf(0) }
     var enemyDice by remember { mutableIntStateOf(0) }
     var isRolling by remember { mutableStateOf(false) }
@@ -65,7 +64,7 @@ fun MysteryScreen(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(240.dp) // Tăng chiều cao lên chút cho thoáng
+                .height(240.dp)
                 .background(Color.White, RoundedCornerShape(16.dp))
                 .border(2.dp, Color(0xFF0277BD), RoundedCornerShape(16.dp))
                 .padding(16.dp),
@@ -74,7 +73,6 @@ fun MysteryScreen(
             if (screenState == "GAMBLE_GAME") {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
 
-                    // Hiển thị 2 xúc xắc
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceEvenly,
@@ -96,7 +94,6 @@ fun MysteryScreen(
                             onClick = {
                                 scope.launch {
                                     isRolling = true
-                                    // Hiệu ứng tung xúc xắc
                                     repeat(15) {
                                         playerDice = (1..6).random()
                                         enemyDice = (1..6).random()
@@ -104,7 +101,6 @@ fun MysteryScreen(
                                     }
                                     isRolling = false
 
-                                    // Logic kết quả
                                     if (playerDice > enemyDice) {
                                         val heal = (maxHp * 0.5).toInt()
                                         tempHp = (tempHp + heal).coerceAtMost(maxHp)
@@ -117,25 +113,21 @@ fun MysteryScreen(
                                         message = "THUA CUỘC...\nBạn ($playerDice) < Địch ($enemyDice)\nMất 10% HP (-$damage)"
                                         screenState = "RESULT"
                                     } else {
-                                        // Hòa -> Giữ nguyên màn hình để tung lại
-                                        // Không làm gì cả, chỉ cập nhật UI
                                     }
                                 }
                             },
                             modifier = Modifier.height(50.dp)
                         ) {
-                            // SỬA: Logic hiển thị chữ trên nút
                             val buttonText = when {
-                                playerDice == 0 -> "Tung Xúc Xắc" // Chưa tung lần nào
-                                playerDice == enemyDice -> "Hòa! Tung lại!" // Đã tung và hòa
-                                else -> "Tung Xúc Xắc" // Trường hợp khác
+                                playerDice == 0 -> "Tung Xúc Xắc"
+                                playerDice == enemyDice -> "Hòa! Tung lại!"
+                                else -> "Tung Xúc Xắc"
                             }
                             Text(buttonText, fontSize = 18.sp)
                         }
                     }
                 }
             } else {
-                // Hiển thị thông báo (Menu hoặc Kết quả)
                 Text(
                     text = message,
                     fontSize = 20.sp,
@@ -200,12 +192,11 @@ fun DiceBox(label: String, value: Int, color: Color) {
         Spacer(modifier = Modifier.height(8.dp))
         Box(
             modifier = Modifier
-                .size(80.dp) // Tăng kích thước ô xúc xắc
+                .size(80.dp)
                 .border(4.dp, color, RoundedCornerShape(12.dp))
                 .background(Color.White, RoundedCornerShape(12.dp)),
             contentAlignment = Alignment.Center
         ) {
-            // SỬA: Nếu giá trị là 0 thì hiện dấu ?, ngược lại hiện số
             val textToShow = if (value == 0) "?" else "$value"
 
             Text(

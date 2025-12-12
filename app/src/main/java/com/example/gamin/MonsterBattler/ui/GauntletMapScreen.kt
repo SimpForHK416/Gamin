@@ -29,7 +29,6 @@ import androidx.compose.ui.zIndex
 import com.example.gamin.MonsterBattler.MapNode
 import com.example.gamin.MonsterBattler.NodeType
 
-// Màu sắc đường nối
 val PathColorActive = Color(0xFFFFFFFF)
 val PathColorInactive = Color(0xFF555555)
 
@@ -39,10 +38,8 @@ fun GauntletMapScreen(
     currentNode: MapNode?,
     onNodeClicked: (MapNode) -> Unit
 ) {
-    // Scroll state
     val scrollState = rememberScrollState()
 
-    // Tự động cuộn xuống dưới cùng (nơi bắt đầu) khi mở map
     LaunchedEffect(Unit) {
         scrollState.animateScrollTo(scrollState.maxValue)
     }
@@ -70,7 +67,6 @@ fun GauntletMapScreen(
                 .padding(top = 80.dp, bottom = 32.dp),
             verticalArrangement = Arrangement.Bottom
         ) {
-            // Vẽ map theo thứ tự ngược (Tầng cao ở trên)
             mapLevels.reversed().forEachIndexed { reverseIndex, levelNodes ->
 
                 val realLevelIndex = mapLevels.size - 1 - reverseIndex

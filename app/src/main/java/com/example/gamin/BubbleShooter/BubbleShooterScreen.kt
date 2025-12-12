@@ -24,12 +24,10 @@ fun BubbleShooterScreen() {
     val context = LocalContext.current
     val activity = (LocalContext.current as? Activity)
 
-    // State quản lý Dialog và Leaderboard
     var showSaveDialog by remember { mutableStateOf(false) }
     var showLeaderboard by remember { mutableStateOf(false) }
     var currentScore by remember { mutableIntStateOf(0) }
 
-    // Nhớ gameView để nó không bị tạo lại
     val gameView = remember {
         BubbleShooterView(context, onGameOver = { score ->
             currentScore = score
@@ -39,13 +37,11 @@ fun BubbleShooterScreen() {
 
     Box(modifier = Modifier.fillMaxSize()) {
 
-        // Game View (chạy ở lớp dưới cùng)
         AndroidView(
             factory = { gameView },
             modifier = Modifier.fillMaxSize()
         )
 
-        // Nút "Back" (chạy ở lớp trên cùng)
         Button(
             onClick = {
                 gameView.pause()
@@ -61,23 +57,20 @@ fun BubbleShooterScreen() {
             Text("Quay lại")
         }
 
-        // --- DIALOG LƯU ĐIỂM ---
         if (showSaveDialog) {
             SaveScoreDialog(
                 score = currentScore,
                 gameId = GAME_ID_BUBBLE_SHOOTER,
                 onDismiss = {
                     showSaveDialog = false
-                    // Khi tắt dialog, người chơi sẽ thấy màn hình Game Over gốc để bấm chơi lại
                 },
                 onSaved = {
                     showSaveDialog = false
-                    showLeaderboard = true // Mở bảng xếp hạng
+                    showLeaderboard = true
                 }
             )
         }
 
-        // --- BẢNG XẾP HẠNG ---
         if (showLeaderboard) {
             LeaderboardScreen(
                 gameId = GAME_ID_BUBBLE_SHOOTER,

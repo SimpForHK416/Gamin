@@ -13,11 +13,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-// --- CẬP NHẬT ENUM (THÊM PLAYER_FAINTED) ---
 enum class BattleState {
     INTRO_DIALOGUE, ENTERING, MAIN_MENU, SKILL_SELECT, MONSTER_SELECT,
     PLAYER_ATTACKING, ENEMY_ATTACKING, BATTLE_END, WARNING_DIALOGUE,
-    PLAYER_FAINTED // <-- QUAN TRỌNG: Phải có dòng này thì Activity mới chạy được
+    PLAYER_FAINTED
 }
 
 data class BattleUiState(
@@ -49,7 +48,6 @@ class BattleViewModel : ViewModel() {
     private var activeBuffs: List<Buff> = emptyList()
     private var onBattleEndCallback: ((Boolean, Int) -> Unit)? = null
 
-    // Hàm Init
     fun initBattle(
         player: Monster, enemy: Monster, pSkills: List<Skill>, eSkills: List<Skill>,
         buffs: List<Buff>, currentHp: Int, isBoss: Boolean, onEnd: (Boolean, Int) -> Unit
@@ -65,26 +63,23 @@ class BattleViewModel : ViewModel() {
         )
     }
 
-    // --- HÀM ĐỔI QUÁI CHỦ ĐỘNG (Mất lượt) ---
     fun switchPlayerMonster(newMonster: Monster, newSkills: List<Skill>) {
         val currentState = _uiState.value
         _uiState.value = currentState.copy(
             playerMonster = newMonster,
             playerSkills = newSkills.map { it.copy() },
             playerHp = newMonster.hp,
-            playerBuffTurns = 0, // Xóa buff khi đổi
-            battleState = BattleState.ENEMY_ATTACKING, // Đổi xong địch đánh luôn
+            playerBuffTurns = 0,
+            battleState = BattleState.ENEMY_ATTACKING,
             logMessage = "Bạn gọi ${newMonster.name} ra trận!",
             logColor = Color.Blue
         )
-        // Kích hoạt lượt địch sau khi đổi
         viewModelScope.launch {
             delay(1500)
             performEnemyTurn()
         }
     }
 
-    // --- HÀM ĐỔI QUÁI KHI CHẾT (Không mất lượt) ---
     fun replaceFaintedMonster(newMonster: Monster, newSkills: List<Skill>) {
         val currentState = _uiState.value
         _uiState.value = currentState.copy(
@@ -92,13 +87,12 @@ class BattleViewModel : ViewModel() {
             playerSkills = newSkills.map { it.copy() },
             playerHp = newMonster.hp,
             playerBuffTurns = 0,
-            battleState = BattleState.MAIN_MENU, // Về menu để đánh tiếp
+            battleState = BattleState.MAIN_MENU,
             logMessage = "Cố lên ${newMonster.name}!",
             logColor = Color.Black
         )
     }
 
-    // --- HÀM KẾT THÚC TRẬN ĐẤU (THUA HẲN) ---
     fun triggerDefeat() {
         endBattle(false)
     }
@@ -211,7 +205,6 @@ class BattleViewModel : ViewModel() {
 
         delay(2000)
 
-        // --- NẾU THUA: CHUYỂN SANG TRẠNG THÁI PLAYER_FAINTED ---
         if (_uiState.value.playerHp <= 0) {
             _uiState.value = _uiState.value.copy(
                 battleState = BattleState.PLAYER_FAINTED,

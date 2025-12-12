@@ -1,4 +1,3 @@
-// Đặt trong thư mục: com.example.gamin/FlappyBird/FlappyBirdActivity.kt
 
 package com.example.gamin.FlappyBird
 

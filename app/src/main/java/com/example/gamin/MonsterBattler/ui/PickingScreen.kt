@@ -29,10 +29,6 @@ import com.example.gamin.MonsterBattler.data.Monster
 import com.example.gamin.MonsterBattler.data.Reward
 import kotlinx.coroutines.delay
 
-// =====================================================================
-// PHẦN 1: MÀN HÌNH CHỌN STARTER (LÚC ĐẦU GAME)
-// =====================================================================
-
 @Composable
 fun PickingScreen(
     monsters: List<Monster>,
@@ -106,7 +102,6 @@ fun PickingScreen(
 
         Spacer(modifier = Modifier.weight(1f))
 
-        // Nút Xác Nhận
         Button(
             onClick = {
                 focusedMonster?.let { onMonsterSelected(it.name) }
@@ -126,7 +121,6 @@ private fun RowScope.MonsterChoiceCard(
     onClick: () -> Unit
 ) {
     val painter = painterFor(name = name)
-    // Đổi màu viền nếu được chọn
     val borderColor = if (isFocused) MaterialTheme.colorScheme.primary else Color.Gray
 
     Card(
@@ -161,16 +155,12 @@ private fun RowScope.MonsterChoiceCard(
     }
 }
 
-// =====================================================================
-// PHẦN 2: MÀN HÌNH CHỌN BUFF (ĐÃ CẬP NHẬT TÊN VÀ THAM SỐ)
-// =====================================================================
-
 @Composable
 fun BuffSelectionScreenModified(
-    option1: Reward.StatUpgrade?, // Nullable để ẩn
+    option1: Reward.StatUpgrade?,
     option2: Reward.Heal?,
     option3: Reward.SkillEffect?,
-    pickCount: Int,               // Tham số mới: Số lần chọn còn lại
+    pickCount: Int,
     onRewardSelected: (Reward) -> Unit
 ) {
     Column(
@@ -183,7 +173,7 @@ fun BuffSelectionScreenModified(
         Text(
             "CHIẾN THẮNG!",
             style = MaterialTheme.typography.headlineLarge,
-            color = Color(0xFFFFD700), // Màu vàng
+            color = Color(0xFFFFD700),
             fontWeight = FontWeight.Bold
         )
         Spacer(modifier = Modifier.height(8.dp))
@@ -191,7 +181,6 @@ fun BuffSelectionScreenModified(
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        // Ô 1: Tăng Chỉ Số (Màu Cam)
         if (option1 != null) {
             RewardCard(
                 title = "Tăng Chỉ Số",
@@ -203,7 +192,6 @@ fun BuffSelectionScreenModified(
             Spacer(modifier = Modifier.height(16.dp))
         }
 
-        // Ô 2: Hồi Phục (Màu Xanh Lá)
         if (option2 != null) {
             RewardCard(
                 title = "Hồi Phục",
@@ -215,7 +203,6 @@ fun BuffSelectionScreenModified(
             Spacer(modifier = Modifier.height(16.dp))
         }
 
-        // Ô 3: Hiệu Ứng Kỹ Năng (Màu Tím)
         if (option3 != null) {
             RewardCard(
                 title = "Hiệu Ứng: ${option3.buff.name}",
@@ -253,11 +240,6 @@ fun RewardCard(title: String, desc: String, color: Color, borderColor: Color, on
 }
 
 
-// =====================================================================
-// PHẦN 3: MÀN HÌNH NÂNG CẤP LỚN (MAJOR UPGRADE)
-// =====================================================================
-
-// Map định nghĩa sự tiến hóa: Tên Gốc -> Tên Tiến Hóa
 val EVOLUTION_MAP = mapOf(
     "CRISHY" to "CONFLEVOUR",
     "RHINPLINK" to "RHITAIN",
@@ -271,23 +253,21 @@ enum class UpgradeState {
 @Composable
 fun MajorUpgradeScreen(
     currentTeam: List<Monster>,
-    availableStarters: List<Monster>, // Danh sách starter chưa được chọn
-    onUpgradeFinished: (List<Monster>) -> Unit // Trả về đội hình mới
+    availableStarters: List<Monster>,
+    onUpgradeFinished: (List<Monster>) -> Unit
 ) {
     var state by remember { mutableStateOf(UpgradeState.MENU) }
 
-    // Biến tạm để xử lý animation tiến hóa
     var monsterToEvolve by remember { mutableStateOf<Monster?>(null) }
     var evolvedMonsterResult by remember { mutableStateOf<Monster?>(null) }
 
-    // Logic kiểm tra điều kiện
     val canRecruit = availableStarters.isNotEmpty()
     val canEvolve = currentTeam.any { EVOLUTION_MAP.containsKey(it.name) }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF263238)) // Nền tối
+            .background(Color(0xFF263238))
             .padding(16.dp),
         contentAlignment = Alignment.Center
     ) {
@@ -311,7 +291,6 @@ fun MajorUpgradeScreen(
                         textAlign = TextAlign.Center
                     )
 
-                    // LỰA CHỌN 1: TĂNG CHỈ SỐ (Luôn hiện)
                     UpgradeOptionCard(
                         title = "Cường Hóa",
                         desc = "+10 Toàn bộ chỉ số cho 1 thành viên.",
@@ -322,7 +301,6 @@ fun MajorUpgradeScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // LỰA CHỌN 2: TIẾN HÓA
                     if (canEvolve) {
                         UpgradeOptionCard(
                             title = "Tiến Hóa",
@@ -334,7 +312,6 @@ fun MajorUpgradeScreen(
                         Spacer(modifier = Modifier.height(16.dp))
                     }
 
-                    // LỰA CHỌN 3: CHIÊU MỘ
                     if (canRecruit) {
                         UpgradeOptionCard(
                             title = "Chiêu Mộ",
@@ -353,7 +330,6 @@ fun MajorUpgradeScreen(
                     monsters = currentTeam,
                     onBack = { state = UpgradeState.MENU },
                     onSelected = { selected ->
-                        // Logic +10 chỉ số
                         val updatedTeam = currentTeam.map {
                             if (it.name == selected.name) {
                                 it.copy(
@@ -375,7 +351,6 @@ fun MajorUpgradeScreen(
                     monsters = availableStarters,
                     onBack = { state = UpgradeState.MENU },
                     onSelected = { selected ->
-                        // Logic thêm vào đội
                         val updatedTeam = currentTeam + selected
                         onUpgradeFinished(updatedTeam)
                     }
@@ -383,7 +358,6 @@ fun MajorUpgradeScreen(
             }
 
             UpgradeState.SELECT_EVO_TARGET -> {
-                // Chỉ hiện những con có thể tiến hóa
                 val evolvableMonsters = currentTeam.filter { EVOLUTION_MAP.containsKey(it.name) }
 
                 MonsterSelector(
@@ -394,7 +368,6 @@ fun MajorUpgradeScreen(
                         monsterToEvolve = selected
                         val newName = EVOLUTION_MAP[selected.name]!!
 
-                        // Logic +20 chỉ số dựa trên chỉ số CŨ
                         evolvedMonsterResult = selected.copy(
                             name = newName,
                             hp = selected.hp + 20,
@@ -414,7 +387,6 @@ fun MajorUpgradeScreen(
                         oldMonster = monsterToEvolve!!,
                         newMonster = evolvedMonsterResult!!,
                         onAnimationFinished = {
-                            // Cập nhật đội hình sau khi animation xong
                             val updatedTeam = currentTeam.map {
                                 if (it.name == monsterToEvolve!!.name) evolvedMonsterResult!! else it
                             }
@@ -480,7 +452,6 @@ fun MonsterSelector(
                     }
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(m.name, color = Color.White, fontWeight = FontWeight.Bold)
-                    // Hiện chỉ số để người chơi tham khảo
                     Text("HP: ${m.hp} | Atk: ${m.atk}", color = Color.Gray, fontSize = 10.sp)
                 }
             }
@@ -499,26 +470,22 @@ fun EvolutionAnimation(
     newMonster: Monster,
     onAnimationFinished: () -> Unit
 ) {
-    // Animation States
     var isEvolving by remember { mutableStateOf(false) }
     var showNewForm by remember { mutableStateOf(false) }
 
-    // Animation Values
     val flashAnim = remember { Animatable(0f) }
 
     LaunchedEffect(Unit) {
         isEvolving = true
-        // 1. Nhấp nháy dạng cũ
         flashAnim.animateTo(1f, animationSpec = infiniteRepeatable(tween(200), RepeatMode.Reverse))
     }
 
-    // Logic chuyển cảnh
     LaunchedEffect(Unit) {
-        delay(2000) // Chờ 2s nhấp nháy
-        showNewForm = true // Đổi sang ảnh mới
-        delay(1000) // Hiện dạng mới 1s
-        delay(1000) // Chờ thêm chút
-        onAnimationFinished() // Xong
+        delay(2000)
+        showNewForm = true
+        delay(1000)
+        delay(1000)
+        onAnimationFinished()
     }
 
     Column(
@@ -538,7 +505,6 @@ fun EvolutionAnimation(
         Spacer(modifier = Modifier.height(40.dp))
 
         Box(contentAlignment = Alignment.Center) {
-            // Ánh sáng nền
             if (!showNewForm) {
                 Box(modifier = Modifier
                     .size(250.dp)
@@ -549,11 +515,9 @@ fun EvolutionAnimation(
                     .background(Color(0xFFFFD700).copy(alpha = 0.3f), CircleShape))
             }
 
-            // Quái vật
             val currentImageName = if (showNewForm) newMonster.name else oldMonster.name
             val scale = if (!showNewForm) 1f + (flashAnim.value * 0.1f) else 1.2f
 
-            // Nếu đang nhấp nháy thì tint màu đen/trắng, nếu xong rồi thì hiện màu thật
             val colorFilter = if (!showNewForm) {
                 ColorFilter.tint(
                     if (flashAnim.value > 0.5f) Color.White else Color.Black

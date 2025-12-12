@@ -11,7 +11,6 @@ import com.example.gamin.MonsterBattler.ui.LeaderboardScreen
 import com.example.gamin.MonsterBattler.ui.SaveScoreDialog
 import com.example.gamin.ui.theme.GaminTheme
 
-// ID định danh cho Arkanoid trên Firebase
 const val GAME_ID_ARKANOID = "arkanoid"
 
 class ArkanoidActivity : ComponentActivity() {
@@ -20,7 +19,6 @@ class ArkanoidActivity : ComponentActivity() {
         setContent {
             GaminTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
-                    // State quản lý việc hiện Dialog và Leaderboard
                     var showSaveDialog by remember { mutableStateOf(false) }
                     var showLeaderboard by remember { mutableStateOf(false) }
                     var currentScore by remember { mutableIntStateOf(0) }
@@ -32,7 +30,7 @@ class ArkanoidActivity : ComponentActivity() {
                             onDismiss = { showSaveDialog = false },
                             onSaved = {
                                 showSaveDialog = false
-                                showLeaderboard = true // Lưu xong thì mở bảng xếp hạng
+                                showLeaderboard = true
                             }
                         )
                     } else if (showLeaderboard) {
@@ -41,7 +39,6 @@ class ArkanoidActivity : ComponentActivity() {
                             onBack = { showLeaderboard = false }
                         )
                     } else {
-                        // Truyền callback để Screen gọi khi Game Over
                         ArkanoidScreen(
                             onGameOver = { finalScore ->
                                 currentScore = finalScore

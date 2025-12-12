@@ -6,7 +6,6 @@ import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.random.Random
 
-// ============ CONSTANTS ============
 const val INITIAL_PADDLE_HEIGHT = 25f
 const val INITIAL_PADDLE_WIDTH = 200f
 const val PADDLE_Y_OFFSET = 60f
@@ -28,9 +27,8 @@ const val POWER_UP_SIZE = 30f
 const val POWER_UP_SPEED = 250f
 const val POWER_UP_CHANCE = 0.25
 const val EXPLOSIVE_CHANCE = 0.1
-const val POWER_UP_DURATION_MS = 5000L // 5 giây
+const val POWER_UP_DURATION_MS = 5000L
 
-// ============ DATA MODELS ============
 sealed class GameState {
     object Ready : GameState()
     object Playing : GameState()
@@ -46,7 +44,6 @@ enum class BrickType {
     BOSS
 }
 
-// === THAY ĐỔI: Đã xóa BALL_SLOW ===
 enum class PowerUpType {
     MULTI_BALL,
     PADDLE_GROW
@@ -80,7 +77,6 @@ data class BrickState(
     val isDestroyed: Boolean = false
 )
 
-// ============ WAVE GENERATOR ============
 fun createBrickPattern(gameWidth: Float, wave: Int): List<BrickState> {
     val totalBrickWidth = gameWidth - BRICK_PADDING * (BRICK_COLS + 1)
     val brickWidth = totalBrickWidth / BRICK_COLS

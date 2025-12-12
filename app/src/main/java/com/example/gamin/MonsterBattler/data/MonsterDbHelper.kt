@@ -11,7 +11,6 @@ class MonsterDbHelper(context: Context) :
     SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION) {
 
     companion object {
-        // Tăng version lên 15 để cập nhật lại dữ liệu mới
         private const val DATABASE_VERSION = 15
         private const val DATABASE_NAME = "MonsterBattler.db"
 
@@ -38,7 +37,6 @@ class MonsterDbHelper(context: Context) :
         db?.execSQL("CREATE TABLE $TABLE_SKILLS (id INTEGER PRIMARY KEY AUTOINCREMENT, $KEY_OWNER_NAME TEXT, $KEY_SKILL_NAME TEXT, $KEY_SKILL_TYPE TEXT, $KEY_POWER INTEGER, $KEY_PP INTEGER, $KEY_SKILL_DESC TEXT)")
         db?.execSQL("CREATE TABLE $TABLE_BUFFS (id INTEGER PRIMARY KEY AUTOINCREMENT, $KEY_BUFF_NAME TEXT, $KEY_BUFF_DESC TEXT, $KEY_BUFF_TARGET_TYPE TEXT, $KEY_BUFF_EFFECT TEXT)")
 
-        // Gọi hàm khởi tạo dữ liệu
         populateDatabase(db)
     }
 
@@ -49,44 +47,29 @@ class MonsterDbHelper(context: Context) :
         onCreate(db)
     }
 
-    // === PHẦN ĐƯỢC CÂN BẰNG LẠI (EASY MODE) ===
     private fun populateDatabase(db: SQLiteDatabase?) {
         db?.beginTransaction()
         try {
-            // --- INSERT MONSTERS ---
             val allMonsters = listOf(
-                // 1. STARTER (BUFF NHẸ ĐỂ DỄ THỞ HƠN)
-                // Tăng HP từ 45->60, Atk 25->30 để đi ải đầu không bị sốc damage
                 Monster("CRISHY", 60, 30, 40, 65, "Fire", "Bùng Nổ", "Thằn lằn lửa."),
                 Monster("RHINPLINK", 75, 25, 65, 35, "Leaf", "Um Tùm", "Tê giác cỏ."),
                 Monster("DOREWEE", 65, 28, 50, 50, "Water", "Suối Nguồn", "Tinh linh nước."),
 
-                // 2. EVOLVED STARTER (Dùng cho người chơi sau này - Mạnh)
                 Monster("CONFLEVOUR", 80, 50, 55, 75, "Fire", "Bùng Nổ", "Evo Crishy."),
                 Monster("RHITAIN", 100, 40, 90, 45, "Leaf", "Um Tùm", "Evo Rhinplink."),
                 Monster("DOPERAMI", 90, 45, 65, 60, "Water", "Suối Nguồn", "Evo Dorewee."),
 
-                // 3. QUÁI VẬT HOANG DÃ (NERF MẠNH ĐỂ KHÔNG ONE-SHOT NGƯỜI CHƠI)
-
-                // Dòng Hoa: Máu giấy, Dame to -> Giảm Dame lại
                 Monster("FLORAMONA_1", 35, 20, 20, 60, "Leaf", "Phấn Hoa", "Hoa nhỏ."),
                 Monster("FLORAMONA_2", 55, 28, 30, 70, "Leaf", "Gai Nhọn", "Hoa gai."),
-                // Con này trước Atk 40 quá khỏe, giảm xuống 32
                 Monster("FLORAMONA_3", 80, 32, 45, 80, "Leaf", "Nữ Hoàng", "Hoa chúa."),
 
-                // Dòng Nước: Trâu bò -> Giảm HP để đánh cho lẹ
                 Monster("OCTOKINETUS", 60, 30, 35, 60, "Water", "Xúc Tu", "Bạch tuộc."),
-                // Con cá đuối này Speed cao, giảm Atk để tránh gây khó chịu
                 Monster("STORMANTA", 65, 28, 30, 85, "Water", "Lướt Sóng", "Cá đuối."),
                 Monster("KOCOMB", 70, 22, 55, 30, "Water", "Gai Cứng", "Gai góc."),
                 Monster("MUNCHILL", 55, 30, 40, 40, "Water", "Điềm Tĩnh", "Băng giá."),
 
-                // Dòng Lửa: Dame to -> Nerf Atk nặng nhất
-                // Oricorio Atk 38 -> 28 (Giảm sốc damage)
                 Monster("ORICORIO", 50, 28, 20, 85, "Fire", "Vũ Điệu", "Chim lửa."),
-                // Grexclub Atk 40 -> 30, HP 70 -> 60
                 Monster("GREXCLUB", 60, 30, 40, 55, "Fire", "Nhiệt Huyết", "Khủng long."),
-                // Chub máu quá trâu (100), giảm xuống 85
                 Monster("CHUB", 85, 22, 30, 30, "Fire", "Mỡ Dày", "Mập mạp.")
             )
 
@@ -104,17 +87,15 @@ class MonsterDbHelper(context: Context) :
                 db?.insert(TABLE_MONSTERS, null, values)
             }
 
-            // --- INSERT SKILLS ---
-            // Skill cơ bản power tầm 10-15 là ổn với chỉ số mới này.
             insertSkillsFor(db, "CRISHY", listOf(
                 Skill("Nóng Giận", "Fire", 0, 10, 10, "Tăng Tấn Công 3 lượt."),
-                Skill("Cào", "Normal", 12, 15, 15, "Cào mạnh."), // Tăng PP lên 15
+                Skill("Cào", "Normal", 12, 15, 15, "Cào mạnh."),
                 Skill("Đốm Lửa", "Fire", 15, 10, 10, "Bắn lửa."),
                 Skill("Ném Đá", "Leaf", 14, 10, 10, "Ném đá.")
             ))
 
             insertSkillsFor(db, "RHINPLINK", listOf(
-                Skill("Quang Hợp", "Leaf", 0, 5, 5, "Hồi 30 HP."), // Giảm PP skill hồi máu
+                Skill("Quang Hợp", "Leaf", 0, 5, 5, "Hồi 30 HP."),
                 Skill("Húc", "Normal", 13, 15, 15, "Húc đầu."),
                 Skill("Lá Bay", "Leaf", 14, 10, 10, "Phóng lá."),
                 Skill("Bùn Lầy", "Water", 12, 10, 10, "Ném bùn.")
@@ -136,7 +117,6 @@ class MonsterDbHelper(context: Context) :
             val waterSkills = listOf(Skill("Đập","Normal",10,10,10,""), Skill("Nước","Water",15,10,10,""), Skill("Giáp","Water",0,10,10,""), Skill("Hơi","Fire",12,10,10,""))
             listOf("DOPERAMI", "OCTOKINETUS", "KOCOMB", "STORMANTA", "MUNCHILL").forEach { insertSkillsFor(db, it, waterSkills) }
 
-            // --- INSERT BUFFS ---
             val buffs = listOf(
                 Buff("Búa Choáng", "10% cơ hội gây CHOÁNG khi dùng kỹ năng bất kỳ.", "Any", "STUN"),
                 Buff("Tinh Thể Lửa", "10% cơ hội gây BỎNG (Mất 10 HP/lượt) khi dùng chiêu Lửa.", "Fire", "BURN"),

@@ -24,7 +24,6 @@ import com.example.gamin.MonsterBattler.data.Monster
 import com.example.gamin.MonsterBattler.data.Skill
 import kotlinx.coroutines.launch
 
-// --- LƯU Ý: ĐÃ XÓA ENUM BATTLESTATE Ở ĐÂY ĐỂ TRÁNH TRÙNG LẶP ---
 // Nó sẽ tự động dùng Enum BattleState nằm trong file BattleViewModel.kt
 
 @Composable
@@ -59,7 +58,6 @@ fun BattleScreen(
 
     if (state.playerMonster == null || state.enemyMonster == null) return
 
-    // DIALOG CHỌN QUÁI
     if (showSwapDialog) {
         Dialog(onDismissRequest = { showSwapDialog = false }) {
             Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Color.White)) {
@@ -135,7 +133,7 @@ fun BattleScreen(
             if (state.battleState == BattleState.PLAYER_ATTACKING ||
                 state.battleState == BattleState.ENEMY_ATTACKING ||
                 state.battleState == BattleState.BATTLE_END ||
-                state.battleState == BattleState.PLAYER_FAINTED) { // Thêm hiển thị log khi chết
+                state.battleState == BattleState.PLAYER_FAINTED) {
 
                 Box(modifier = Modifier.fillMaxSize().background(Color.White, RoundedCornerShape(8.dp)).padding(16.dp)) {
                     Text(state.logMessage, fontSize = 18.sp, color = state.logColor, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, modifier = Modifier.align(Alignment.Center))

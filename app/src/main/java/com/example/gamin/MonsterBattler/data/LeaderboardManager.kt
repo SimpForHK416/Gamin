@@ -5,7 +5,6 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import java.util.Date
 
-// Model dữ liệu điểm số
 data class PlayerScore(
     val name: String = "",
     val score: Int = 0,
@@ -15,7 +14,6 @@ data class PlayerScore(
 object LeaderboardManager {
     private val db = FirebaseFirestore.getInstance()
 
-    // Lưu điểm lên Firebase
     fun saveScore(
         gameId: String,
         name: String,
@@ -40,7 +38,6 @@ object LeaderboardManager {
             }
     }
 
-    // Tải bảng xếp hạng (Top 10)
     fun getTopScores(
         gameId: String,
         onResult: (List<PlayerScore>) -> Unit

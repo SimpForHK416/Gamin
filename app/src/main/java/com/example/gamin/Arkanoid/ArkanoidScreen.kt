@@ -27,7 +27,6 @@ import kotlinx.coroutines.delay
 import kotlin.math.*
 import kotlin.random.Random
 
-// --- CÁC HẰNG SỐ CẤU HÌNH TỐC ĐỘ ---
 private const val SPEED_MULTIPLIER = 1.2f
 private const val MAX_BALL_SPEED = 2500f
 
@@ -39,8 +38,8 @@ private data class ActiveEffect(
 @SuppressLint("ContextCastToActivity", "UnusedBoxWithConstraintsScope")
 @Composable
 fun ArkanoidScreen(
-    onGameOver: (Int) -> Unit, // Callback khi thua
-    onShowLeaderboard: () -> Unit // Callback mở BXH
+    onGameOver: (Int) -> Unit,
+    onShowLeaderboard: () -> Unit
 ) {
     var showLevelSelect by remember { mutableStateOf(true) }
     var selectedWave by remember { mutableStateOf(1) }
@@ -79,7 +78,6 @@ private fun LevelSelectScreen(onWaveSelected: (Int) -> Unit, onShowLeaderboard: 
                 modifier = Modifier.padding(bottom = 16.dp)
             )
 
-            // Nút xem BXH ở màn hình chọn màn
             Button(
                 onClick = onShowLeaderboard,
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFA000)),
@@ -213,7 +211,6 @@ private fun ArkanoidGameScreen(
                     _timeAccumulator -= dec.toFloat()
                 }
 
-                // HẾT GIỜ -> GAME OVER -> LƯU ĐIỂM
                 if (timeLeftSeconds <= 0) {
                     onGameOver(score)
                     gameState = GameState.GameOver
@@ -292,7 +289,6 @@ private fun ArkanoidGameScreen(
                 }
                 newBalls.removeAll(ballsToRemove)
 
-                // HẾT MẠNG -> GAME OVER -> LƯU ĐIỂM
                 if (newBalls.isEmpty() && balls.isNotEmpty()) {
                     lives--
                     if (lives <= 0) {
@@ -446,7 +442,6 @@ private fun ArkanoidGameScreen(
                 powerUps = activePowerUps
 
                 if (bricks.all { it.isDestroyed }) {
-                    // QUA MÀN KO LƯU ĐIỂM NGAY, CHỜ CHẾT MỚI LƯU TỔNG
                     gameState = GameState.WaveClear
                     break
                 }
